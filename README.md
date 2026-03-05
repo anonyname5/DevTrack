@@ -19,6 +19,8 @@ This repository currently contains the backend API starter, unit tests, Docker s
    - `dotnet test DevTrack.sln`
 3. Start API:
    - `dotnet run --project src/DevTrack.Api`
+4. Open Swagger UI (Development environment):
+   - `https://localhost:7028/swagger` or `http://localhost:5072/swagger`
 
 ## API Endpoints (Starter)
 
