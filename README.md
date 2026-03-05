@@ -1,14 +1,14 @@
 # DevTrack
 
 DevTrack is a CI/CD-focused fullstack learning project.
-This repository currently contains the backend API starter, unit tests, Docker setup, and CI workflow.
+This repository currently contains the backend API starter, unit tests, Docker setup, and CI/CD workflow skeletons.
 
 ## Current Stack
 
 - Backend: ASP.NET Core Web API (.NET 9)
 - Testing: xUnit
 - Containerization: Docker (multi-stage)
-- CI: GitHub Actions
+- CI/CD: GitHub Actions
 
 ## Run Locally
 
@@ -45,3 +45,16 @@ Defined in `.github/workflows/ci.yml`:
 - Test
 
 CI runs on every push and pull request.
+
+## CD Pipeline (Skeleton)
+
+Defined in `.github/workflows/cd.yml`:
+
+- Trigger on push to `main` (and manual dispatch)
+- Build Docker image tagged with commit SHA
+- Optionally push image to GHCR if `GHCR_PAT` secret is configured
+- Includes deployment placeholder step for VPS rollout
+
+### Required Secrets for Image Push
+
+- `GHCR_PAT`: Personal access token with package write permissions
