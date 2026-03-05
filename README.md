@@ -69,12 +69,14 @@ Defined in `.github/workflows/cd.yml`:
 
 - Trigger on push to `Dev` (staging simulation) and `Production`/`production` (production simulation)
 - Build Docker image tagged with branch-aware prefixes (`stg-<sha>` or `prod-<sha>`)
-- Optionally push image to GHCR if `GHCR_PAT` secret is configured
-- Includes deployment placeholder step for VPS rollout
+- Push image to GHCR using `GITHUB_TOKEN` (no custom PAT required)
+- Publish stable environment tags (`stg-latest` / `prod-latest`) in addition to SHA tags
+- Includes dry-run deploy script output for future VPS rollout
 
-### Required Secrets for Image Push
+### Required Repository Settings
 
-- `GHCR_PAT`: Personal access token with package write permissions
+- Ensure workflow permissions allow package write (`packages: write`)
+- If your repository is private, verify package visibility/access in GHCR settings
 
 ## Backend Environment Variables
 

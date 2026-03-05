@@ -31,11 +31,11 @@ Use this file to track your progress as you implement each phase.
 
 - [x] Multi-stage Dockerfile for API
 - [x] Local container run verification
-- [x] Registry push workflow skeleton (GitHub Actions + GHCR)
+- [x] Registry push workflow (GitHub Actions + GHCR)
 
 ## Phase 6 - Deployment and CD
 
 - [ ] VPS provisioning
 - [ ] Manual deployment
-- [x] Automated CD pipeline skeleton (build + optional push)
+- [x] Automated CD pipeline (build + GHCR push + dry-run deploy script)
 - [ ] Rollback strategy with image tags
