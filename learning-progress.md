@@ -6,19 +6,19 @@ Use this file to track your progress as you implement each phase.
 
 - [x] Create .NET solution and Web API
 - [x] Add base domain models (`User`, `Project`, `TaskItem`)
-- [ ] Add EF Core + MySQL
-- [ ] Add first migration
+- [x] Add EF Core + MySQL
+- [x] Add first migration
 
 ## Phase 2 - Authentication
 
-- [ ] Register endpoint with password hashing
-- [ ] Login endpoint with JWT token generation
-- [ ] JWT validation middleware and protected endpoints
+- [x] Register endpoint with password hashing
+- [x] Login endpoint with JWT token generation
+- [x] JWT validation middleware and protected endpoints
 
 ## Phase 3 - CRUD and Business Logic
 
-- [ ] Projects CRUD
-- [ ] Tasks CRUD
+- [x] Projects CRUD (full)
+- [x] Tasks CRUD
 - [x] Project progress calculation service
 
 ## Phase 4 - Testing and CI

@@ -1,6 +1,26 @@
 @DevTrack.Api_HostAddress = http://localhost:5072
 
-GET {{DevTrack.Api_HostAddress}}/weatherforecast/
+GET {{DevTrack.Api_HostAddress}}/api/health
 Accept: application/json
+
+###
+
+POST {{DevTrack.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Example123!"
+}
+
+###
+
+POST {{DevTrack.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Example123!"
+}
 
 ###

@@ -22,9 +22,26 @@ This repository currently contains the backend API starter, unit tests, Docker s
 4. Open Swagger UI (Development environment):
    - `https://localhost:7028/swagger` or `http://localhost:5072/swagger`
 
+## Database Migration
+
+- Initial migration is included in `src/DevTrack.Api/Data/Migrations`
+- Apply migration:
+  - `dotnet ef database update --project src/DevTrack.Api --startup-project src/DevTrack.Api`
+
 ## API Endpoints (Starter)
 
 - `GET /api/health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/projects` (JWT protected)
+- `POST /api/projects`
+- `PUT /api/projects/{id}`
+- `DELETE /api/projects/{id}`
+- `GET /api/projects/{projectId}/tasks`
+- `POST /api/projects/{projectId}/tasks`
+- `PUT /api/tasks/{id}`
+- `DELETE /api/tasks/{id}`
+- `PATCH /api/tasks/{id}/complete`
 - `POST /api/progress/calculate`
 
 `/api/progress/calculate` request body:
@@ -58,3 +75,16 @@ Defined in `.github/workflows/cd.yml`:
 ### Required Secrets for Image Push
 
 - `GHCR_PAT`: Personal access token with package write permissions
+
+## Backend Environment Variables
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_SERVER_VERSION` (example: `8.0.36-mysql`)
+- `JWT_SECRET`
+- `JWT_ISSUER`
+- `JWT_AUDIENCE`
+- `JWT_EXPIRATION_MINUTES`
