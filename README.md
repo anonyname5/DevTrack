@@ -50,8 +50,8 @@ CI runs on every push and pull request.
 
 Defined in `.github/workflows/cd.yml`:
 
-- Trigger on push to `main` (and manual dispatch)
-- Build Docker image tagged with commit SHA
+- Trigger on push to `Dev` (staging simulation) and `Production`/`production` (production simulation)
+- Build Docker image tagged with branch-aware prefixes (`stg-<sha>` or `prod-<sha>`)
 - Optionally push image to GHCR if `GHCR_PAT` secret is configured
 - Includes deployment placeholder step for VPS rollout
 

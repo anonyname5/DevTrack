@@ -3,7 +3,9 @@ name: CD
 on:
   push:
     branches:
-      - main
+      - Dev
+      - Production
+      - production
   workflow_dispatch:
 
 permissions:
@@ -22,18 +24,33 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Determine deployment target
+        id: target
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "Dev" ]; then
+            echo "deploy_env=staging" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=stg" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "Production" ] || [ "${GITHUB_REF_NAME}" = "production" ]; then
+            echo "deploy_env=production" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unsupported branch for CD: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
       - name: Generate image metadata
         id: meta
         run: |
           echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${{ steps.target.outputs.tag_prefix }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           echo "image_repo=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         run: |
           docker build \
             -f src/DevTrack.Api/Dockerfile \
-            -t ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha_tag }} \
-            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.sha_tag }} \
+            -t ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }} \
+            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }} \
             .
 
       - name: Login to GHCR (optional)
@@ -46,7 +63,7 @@ jobs:
 
       - name: Push image to GHCR (optional)
         if: ${{ secrets.GHCR_PAT != '' }}
-        run: docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.sha_tag }}
+        run: docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
 
       - name: Skip push notice
         if: ${{ secrets.GHCR_PAT == '' }}
@@ -54,5 +71,7 @@ jobs:
 
       - name: Deploy step placeholder
         run: |
-          echo "Next step: add SSH deploy to your VPS."
+          echo "Target environment: ${{ steps.target.outputs.deploy_env }}"
+          echo "Image: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "Next step: add SSH deploy to your VPS for ${{ steps.target.outputs.deploy_env }}."
           echo "Typical flow: pull image -> stop old container -> run new container -> health check."
