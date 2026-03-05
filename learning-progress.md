@@ -30,7 +30,7 @@ Use this file to track your progress as you implement each phase.
 ## Phase 5 - Docker
 
 - [x] Multi-stage Dockerfile for API
-- [ ] Local container run verification
+- [x] Local container run verification
 - [x] Registry push workflow skeleton (GitHub Actions + GHCR)
 
 ## Phase 6 - Deployment and CD
