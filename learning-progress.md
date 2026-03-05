@@ -24,7 +24,7 @@ Use this file to track your progress as you implement each phase.
 ## Phase 4 - Testing and CI
 
 - [x] Unit tests for progress logic
-- [ ] Integration tests for auth + project endpoints
+- [x] Integration tests for auth + project endpoints
 - [x] GitHub Actions CI workflow (restore/build/test)
 
 ## Phase 5 - Docker
