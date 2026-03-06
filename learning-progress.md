@@ -39,4 +39,4 @@ Use this file to track your progress as you implement each phase.
 - [x] Manual deployment
 - [x] Automated CD pipeline (build + GHCR push + staging SSH deploy)
 - [x] Validate Dev auto-deploy run in GitHub Actions
-- [ ] Rollback strategy with image tags
+- [x] Rollback strategy with image tags

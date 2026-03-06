@@ -63,7 +63,7 @@ Defined in `.github/workflows/ci.yml`:
 
 CI runs on every push and pull request.
 
-## CD Pipeline (Skeleton)
+## CD Pipeline
 
 Defined in `.github/workflows/cd.yml`:
 
@@ -86,6 +86,39 @@ Defined in `.github/workflows/cd.yml`:
 - `VPS_SSH_KEY`
 - Optional: `VPS_PORT` (defaults to `22`)
 - Optional: `APP_CONTAINER_NAME` (defaults to `devtrack-api-staging`)
+
+## Rollback Strategy (Staging)
+
+Use immutable image tags (`stg-<sha>`) for safe rollbacks.
+
+### Capture currently running image
+
+Run on VPS before each manual intervention:
+
+```bash
+docker inspect devtrack-api-staging --format '{{.Config.Image}}'
+```
+
+Save the returned image tag (example: `ghcr.io/anonyname5/devtrack-api:stg-211dae0`).
+
+### Rollback steps
+
+1. Pull the previous known-good tag:
+   - `docker pull ghcr.io/anonyname5/devtrack-api:stg-<previous-sha>`
+2. Replace the container with that image:
+   - `docker stop devtrack-api-staging || true`
+   - `docker rm devtrack-api-staging || true`
+   - `docker run -d --name devtrack-api-staging -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production ghcr.io/anonyname5/devtrack-api:stg-<previous-sha>`
+3. Verify service health:
+   - `curl -f http://localhost:8080/api/health`
+
+### Rollback checklist
+
+- Identify failed deployment tag from GitHub Actions logs.
+- Confirm a previous stable `stg-<sha>` tag exists in GHCR.
+- Redeploy using rollback steps above.
+- Confirm health endpoint and basic API smoke test.
+- Record rollback reason and recovered tag in deployment notes.
 
 ## Backend Environment Variables
 
