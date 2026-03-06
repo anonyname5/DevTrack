@@ -81,8 +81,23 @@ jobs:
           echo "docker run -d --name devtrack-api-${{ steps.target.outputs.deploy_env }} -p 8080:8080 ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
           echo "curl -f http://localhost:8080/api/health"
 
+      - name: Check VPS deploy secrets
+        id: deploy_secrets
+        if: ${{ github.ref_name == 'Dev' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "VPS deploy secrets are missing; skipping deploy."
+          fi
+
       - name: Deploy to VPS staging (Dev branch)
-        if: ${{ github.ref_name == 'Dev' && secrets.VPS_HOST != '' && secrets.VPS_USER != '' && secrets.VPS_SSH_KEY != '' }}
+        if: ${{ github.ref_name == 'Dev' && steps.deploy_secrets.outputs.ready == 'true' }}
         uses: appleboy/ssh-action@v1.2.0
         env:
           IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
