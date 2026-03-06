@@ -108,6 +108,7 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
           CONTAINER_NAME: ${{ secrets.APP_CONTAINER_NAME != '' && secrets.APP_CONTAINER_NAME || 'devtrack-api-staging' }}
+          NETWORK_NAME: ${{ secrets.DOCKER_NETWORK != '' && secrets.DOCKER_NETWORK || 'devtrack-net' }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_NAME: ${{ secrets.DB_NAME }}
@@ -122,13 +123,15 @@ jobs:
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           port: ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
           script_stop: true
-          envs: IMAGE_REF,CONTAINER_NAME,DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET
+          envs: IMAGE_REF,CONTAINER_NAME,NETWORK_NAME,DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET
           script: |
             docker pull "$IMAGE_REF"
+            docker network create "$NETWORK_NAME" || true
             docker stop "$CONTAINER_NAME" || true
             docker rm "$CONTAINER_NAME" || true
             docker run -d \
               --name "$CONTAINER_NAME" \
+              --network "$NETWORK_NAME" \
               -p 8080:8080 \
               -e ASPNETCORE_ENVIRONMENT=Development \
               -e DB_HOST="$DB_HOST" \

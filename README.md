@@ -93,6 +93,7 @@ Defined in `.github/workflows/cd.yml`:
 - `DB_PASSWORD`
 - `JWT_SECRET`
 - Optional: `DB_SERVER_VERSION` (defaults to `8.0.36-mysql`)
+- Optional: `DOCKER_NETWORK` (defaults to `devtrack-net`)
 - Optional: `VPS_SSH_PASSPHRASE` (required if SSH key is passphrase-protected)
 
 ## Rollback Strategy (Staging)
