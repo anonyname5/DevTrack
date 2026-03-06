@@ -119,4 +119,22 @@ jobs:
               -p 8080:8080 \
               -e ASPNETCORE_ENVIRONMENT=Production \
               "$IMAGE_REF"
-            curl -f http://localhost:8080/api/health
+            for i in $(seq 1 20); do
+              if curl -fsS http://localhost:8080/api/health > /dev/null; then
+                echo "Health check passed."
+                exit 0
+              fi
+
+              if ! docker ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+                echo "Container exited before becoming healthy."
+                docker logs "$CONTAINER_NAME" || true
+                exit 1
+              fi
+
+              echo "Waiting for API to become healthy... attempt $i/20"
+              sleep 3
+            done
+
+            echo "Health check timed out."
+            docker logs "$CONTAINER_NAME" || true
+            exit 1
