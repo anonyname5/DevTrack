@@ -155,3 +155,15 @@ Save the returned image tag (example: `ghcr.io/anonyname5/devtrack-api:stg-211da
 - `JWT_AUDIENCE`
 - `JWT_EXPIRATION_MINUTES`
 - `CORS_ALLOWED_ORIGINS` (comma-separated, example: `http://localhost:5173,http://127.0.0.1:5173`)
+
+## Trigger CD After Secret Changes
+
+If you update deployment-related secrets (for example `CORS_ALLOWED_ORIGINS`), trigger a new `Dev` CD run so the VPS container starts with the latest values.
+
+Option B (commit-based trigger):
+
+1. Make a tiny change in a backend/deploy-tracked file (such as this `README.md` or `.github/workflows/cd.yml`).
+2. Commit to `Dev`.
+3. Push to remote.
+
+Because `cd.yml` uses path filters, frontend-only changes do not trigger backend deployment.
