@@ -86,6 +86,14 @@ Defined in `.github/workflows/cd.yml`:
 - `VPS_SSH_KEY`
 - Optional: `VPS_PORT` (defaults to `22`)
 - Optional: `APP_CONTAINER_NAME` (defaults to `devtrack-api-staging`)
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `JWT_SECRET`
+- Optional: `DB_SERVER_VERSION` (defaults to `8.0.36-mysql`)
+- Optional: `VPS_SSH_PASSPHRASE` (required if SSH key is passphrase-protected)
 
 ## Rollback Strategy (Staging)
 

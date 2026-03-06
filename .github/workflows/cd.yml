@@ -88,12 +88,18 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ]; then
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ] && [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$JWT_SECRET" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "VPS deploy secrets are missing; skipping deploy."
+            echo "VPS or DB deploy secrets are missing; skipping deploy."
           fi
 
       - name: Deploy to VPS staging (Dev branch)
@@ -102,6 +108,13 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
           CONTAINER_NAME: ${{ secrets.APP_CONTAINER_NAME != '' && secrets.APP_CONTAINER_NAME || 'devtrack-api-staging' }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_SERVER_VERSION: ${{ secrets.DB_SERVER_VERSION != '' && secrets.DB_SERVER_VERSION || '8.0.36-mysql' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -109,7 +122,7 @@ jobs:
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           port: ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
           script_stop: true
-          envs: IMAGE_REF,CONTAINER_NAME
+          envs: IMAGE_REF,CONTAINER_NAME,DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET
           script: |
             docker pull "$IMAGE_REF"
             docker stop "$CONTAINER_NAME" || true
@@ -118,6 +131,13 @@ jobs:
               --name "$CONTAINER_NAME" \
               -p 8080:8080 \
               -e ASPNETCORE_ENVIRONMENT=Development \
+              -e DB_HOST="$DB_HOST" \
+              -e DB_PORT="$DB_PORT" \
+              -e DB_NAME="$DB_NAME" \
+              -e DB_USER="$DB_USER" \
+              -e DB_PASSWORD="$DB_PASSWORD" \
+              -e DB_SERVER_VERSION="$DB_SERVER_VERSION" \
+              -e JWT_SECRET="$JWT_SECRET" \
               "$IMAGE_REF"
             for i in $(seq 1 20); do
               if curl -fsS http://localhost:8080/api/health > /dev/null; then
