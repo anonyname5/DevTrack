@@ -22,6 +22,19 @@ This repository currently contains the backend API starter, unit tests, Docker s
 4. Open Swagger UI (Development environment):
    - `https://localhost:7028/swagger` or `http://localhost:5072/swagger`
 
+## Frontend (React + Vite)
+
+The frontend app lives in `frontend/`.
+
+1. Setup environment:
+   - Copy `frontend/.env.example` to `frontend/.env`
+   - Set `VITE_API_BASE_URL` to your API URL
+2. Install dependencies:
+   - `cd frontend`
+   - `npm install`
+3. Run frontend:
+   - `npm run dev`
+
 ## Database Migration
 
 - Initial migration is included in `src/DevTrack.Api/Data/Migrations`
@@ -141,3 +154,4 @@ Save the returned image tag (example: `ghcr.io/anonyname5/devtrack-api:stg-211da
 - `JWT_ISSUER`
 - `JWT_AUDIENCE`
 - `JWT_EXPIRATION_MINUTES`
+- `CORS_ALLOWED_ORIGINS` (comma-separated, example: `http://localhost:5173,http://127.0.0.1:5173`)

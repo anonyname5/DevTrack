@@ -25,9 +25,30 @@ int jwtExpirationMinutes = int.TryParse(
     out int parsedMinutes)
     ? parsedMinutes
     : 60;
+string configuredCorsOrigins = builder.Configuration["CORS_ALLOWED_ORIGINS"] ?? string.Empty;
+string[] corsOrigins = configuredCorsOrigins
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+if (corsOrigins.Length == 0)
+{
+    corsOrigins =
+    [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ];
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCorsPolicy", policy =>
+    {
+        policy.WithOrigins(corsOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -120,6 +141,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("FrontendCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
