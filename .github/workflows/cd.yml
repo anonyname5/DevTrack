@@ -67,7 +67,7 @@ jobs:
           docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
           docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }}
 
-      - name: Dry-run deploy script (no VPS required)
+      - name: Dry-run deploy script
         run: |
           echo "Target environment: ${{ steps.target.outputs.deploy_env }}"
           echo "Image: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
@@ -80,3 +80,27 @@ jobs:
           echo "docker rm devtrack-api-${{ steps.target.outputs.deploy_env }} || true"
           echo "docker run -d --name devtrack-api-${{ steps.target.outputs.deploy_env }} -p 8080:8080 ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
           echo "curl -f http://localhost:8080/api/health"
+
+      - name: Deploy to VPS staging (Dev branch)
+        if: ${{ github.ref_name == 'Dev' && secrets.VPS_HOST != '' && secrets.VPS_USER != '' && secrets.VPS_SSH_KEY != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
+          CONTAINER_NAME: ${{ secrets.APP_CONTAINER_NAME != '' && secrets.APP_CONTAINER_NAME || 'devtrack-api-staging' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
+          script_stop: true
+          envs: IMAGE_REF,CONTAINER_NAME
+          script: |
+            docker pull "$IMAGE_REF"
+            docker stop "$CONTAINER_NAME" || true
+            docker rm "$CONTAINER_NAME" || true
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              -p 8080:8080 \
+              -e ASPNETCORE_ENVIRONMENT=Production \
+              "$IMAGE_REF"
+            curl -f http://localhost:8080/api/health

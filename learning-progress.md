@@ -35,7 +35,7 @@ Use this file to track your progress as you implement each phase.
 
 ## Phase 6 - Deployment and CD
 
-- [ ] VPS provisioning
-- [ ] Manual deployment
-- [x] Automated CD pipeline (build + GHCR push + dry-run deploy script)
+- [x] VPS provisioning
+- [x] Manual deployment
+- [x] Automated CD pipeline (build + GHCR push + staging SSH deploy)
 - [ ] Rollback strategy with image tags

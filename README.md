@@ -71,12 +71,21 @@ Defined in `.github/workflows/cd.yml`:
 - Build Docker image tagged with branch-aware prefixes (`stg-<sha>` or `prod-<sha>`)
 - Push image to GHCR using `GITHUB_TOKEN` (no custom PAT required)
 - Publish stable environment tags (`stg-latest` / `prod-latest`) in addition to SHA tags
-- Includes dry-run deploy script output for future VPS rollout
+- Includes dry-run deploy script output
+- Automatically deploys `Dev` builds to VPS over SSH when deploy secrets are configured
 
 ### Required Repository Settings
 
 - Ensure workflow permissions allow package write (`packages: write`)
 - If your repository is private, verify package visibility/access in GHCR settings
+
+### Required Secrets for VPS Deploy
+
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- Optional: `VPS_PORT` (defaults to `22`)
+- Optional: `APP_CONTAINER_NAME` (defaults to `devtrack-api-staging`)
 
 ## Backend Environment Variables
 
