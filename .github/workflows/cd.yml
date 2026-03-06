@@ -6,6 +6,13 @@ on:
       - Dev
       - Production
       - production
+    paths:
+      - "src/DevTrack.Api/**"
+      - "src/**/*.csproj"
+      - "DevTrack.sln"
+      - ".github/workflows/cd.yml"
+      - "src/DevTrack.Api/Dockerfile"
+      - ".dockerignore"
   workflow_dispatch:
 
 permissions:
