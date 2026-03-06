@@ -38,4 +38,5 @@ Use this file to track your progress as you implement each phase.
 - [x] VPS provisioning
 - [x] Manual deployment
 - [x] Automated CD pipeline (build + GHCR push + staging SSH deploy)
+- [ ] Validate Dev auto-deploy run in GitHub Actions
 - [ ] Rollback strategy with image tags
