@@ -194,7 +194,13 @@ jobs:
             echo "Compose is available."
 
             APP_DIR="/opt/devtrack"
-            mkdir -p "$APP_DIR"
+            if ! mkdir -p "$APP_DIR" 2>/dev/null; then
+              APP_DIR="$HOME/devtrack"
+              mkdir -p "$APP_DIR"
+              echo "No permission for /opt. Using APP_DIR=$APP_DIR"
+            else
+              echo "Using APP_DIR=$APP_DIR"
+            fi
             COMPOSE_FILE="$APP_DIR/docker-compose.staging.yml"
 
             show_debug_state() {
