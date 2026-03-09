@@ -156,12 +156,39 @@ jobs:
               exit 1
             fi
 
-            if docker compose version > /dev/null 2>&1; then
-              COMPOSE_MODE="docker_compose_v2"
-            elif command -v docker-compose > /dev/null 2>&1; then
-              COMPOSE_MODE="docker_compose_v1"
-            else
-              echo "Docker Compose is not installed on VPS."
+            ensure_compose() {
+              if docker compose version > /dev/null 2>&1; then
+                COMPOSE_MODE="docker_compose_v2"
+                return 0
+              fi
+
+              if command -v docker-compose > /dev/null 2>&1; then
+                COMPOSE_MODE="docker_compose_v1"
+                return 0
+              fi
+
+              echo "Docker Compose not found. Attempting install..."
+              if command -v apt-get > /dev/null 2>&1; then
+                apt-get update -y || true
+                apt-get install -y docker-compose-plugin || true
+                apt-get install -y docker-compose || true
+              fi
+
+              if docker compose version > /dev/null 2>&1; then
+                COMPOSE_MODE="docker_compose_v2"
+                return 0
+              fi
+
+              if command -v docker-compose > /dev/null 2>&1; then
+                COMPOSE_MODE="docker_compose_v1"
+                return 0
+              fi
+
+              return 1
+            }
+
+            if ! ensure_compose; then
+              echo "Docker Compose is not installed on VPS and automatic install failed."
               exit 1
             fi
 
