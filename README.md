@@ -76,6 +76,15 @@ Defined in `.github/workflows/ci.yml`:
 
 CI runs on every push and pull request.
 
+## Frontend CI Pipeline
+
+Defined in `.github/workflows/frontend-ci.yml`:
+
+- Triggered on push and pull request when `frontend/**` changes
+- Installs frontend dependencies with `npm ci`
+- Runs `npm run lint`
+- Runs `npm run build`
+
 ## CD Pipeline
 
 Defined in `.github/workflows/cd.yml`:
