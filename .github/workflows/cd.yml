@@ -218,15 +218,19 @@ jobs:
               echo "---- debug: docker ps ----"
               docker ps || true
               echo "---- debug: compose logs (tail 120) ----"
-              if [ -f "$COMPOSE_FILE" ]; then
-                if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
-                  docker compose -f "$COMPOSE_FILE" logs --tail=120 || true
-                else
-                  docker-compose -f "$COMPOSE_FILE" logs --tail=120 || true
-                fi
-              else
+              if [ ! -f "$COMPOSE_FILE" ]; then
                 echo "Compose file not found yet: $COMPOSE_FILE"
+                return 0
               fi
+
+              case "$COMPOSE_MODE" in
+                docker_compose_v2)
+                  docker compose -f "$COMPOSE_FILE" logs --tail=120 || true
+                  ;;
+                *)
+                  docker-compose -f "$COMPOSE_FILE" logs --tail=120 || true
+                  ;;
+              esac
             }
             echo "Debug helper ready."
 
@@ -331,18 +335,24 @@ jobs:
             echo "Starting compose deploy..."
 
             run_compose() {
-              if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
-                docker compose -f "$COMPOSE_FILE" "$@"
-              else
-                docker-compose -f "$COMPOSE_FILE" "$@"
-              fi
+              case "$COMPOSE_MODE" in
+                docker_compose_v2)
+                  docker compose -f "$COMPOSE_FILE" "$@"
+                  ;;
+                *)
+                  docker-compose -f "$COMPOSE_FILE" "$@"
+                  ;;
+              esac
             }
 
-            if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
-              echo "Using docker compose (v2)."
-            else
-              echo "Using docker-compose (v1)."
-            fi
+            case "$COMPOSE_MODE" in
+              docker_compose_v2)
+                echo "Using docker compose (v2)."
+                ;;
+              *)
+                echo "Using docker-compose (v1)."
+                ;;
+            esac
 
             if ! run_compose pull; then
               echo "Compose pull failed."
