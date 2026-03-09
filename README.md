@@ -167,6 +167,7 @@ Option B (commit-based trigger):
 3. Push to remote.
 
 Because `cd.yml` uses path filters, frontend-only changes do not trigger backend deployment.
+Example backend-triggered doc update committed to `README.md`.
 
 ## Frontend CD (VPS + Nginx)
 
