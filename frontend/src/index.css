@@ -61,6 +61,11 @@ input {
   padding: 10px 12px;
 }
 
+input[type='checkbox'] {
+  width: auto;
+  padding: 0;
+}
+
 button {
   border: none;
   border-radius: 8px;
@@ -80,6 +85,32 @@ button:disabled {
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+}
+
+.section-top {
+  margin-top: 16px;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  background: #0f172a;
+  color: #fff;
+  font-size: 14px;
+}
+
+.ghost {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.danger {
+  background: #b91c1c;
+  color: #fff;
 }
 
 .helper {
@@ -111,4 +142,16 @@ button:disabled {
   margin: 4px 0 0;
   color: #475569;
   font-size: 13px;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.task-done {
+  text-decoration: line-through;
+  color: #64748b;
 }

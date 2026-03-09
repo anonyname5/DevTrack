@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { clearToken } from '../lib/authStorage'
 
@@ -95,9 +95,14 @@ function DashboardPage() {
           <ul className="list">
             {projects.map((project) => (
               <li key={project.id}>
-                <div>
-                  <strong>{project.name}</strong>
-                  <p className="muted">Progress: {project.progressPercentage ?? 0}%</p>
+                <div className="row">
+                  <div>
+                    <strong>{project.name}</strong>
+                    <p className="muted">Progress: {project.progressPercentage ?? 0}%</p>
+                  </div>
+                  <Link className="link-button" to={`/projects/${project.id}`}>
+                    Open
+                  </Link>
                 </div>
               </li>
             ))}

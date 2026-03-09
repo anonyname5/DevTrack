@@ -3,6 +3,7 @@ import { getToken } from './lib/authStorage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
+import ProjectDetailPage from './pages/ProjectDetailPage'
 
 function ProtectedRoute({ children }) {
   if (!getToken()) {
@@ -23,6 +24,14 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetailPage />
           </ProtectedRoute>
         }
       />
