@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { clearToken } from '../lib/authStorage'
@@ -11,22 +11,32 @@ function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     setError('')
 
     try {
       const response = await apiClient.get('/api/projects')
-      setProjects(response.data)
+      if (Array.isArray(response.data)) {
+        setProjects(response.data)
+      } else {
+        setProjects([])
+        setError('Unexpected projects response format.')
+      }
     } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        clearToken()
+        navigate('/login')
+        return
+      }
       setError(requestError?.response?.data?.message ?? 'Failed to load projects.')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [navigate])
 
   useEffect(() => {
     loadProjects()
-  }, [])
+  }, [loadProjects])
 
   async function handleCreateProject(event) {
     event.preventDefault()
@@ -38,6 +48,11 @@ function DashboardPage() {
       setNewProjectName('')
       await loadProjects()
     } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        clearToken()
+        navigate('/login')
+        return
+      }
       setError(requestError?.response?.data?.message ?? 'Failed to create project.')
     } finally {
       setIsSubmitting(false)
