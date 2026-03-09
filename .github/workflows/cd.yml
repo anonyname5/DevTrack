@@ -216,7 +216,9 @@ jobs:
             echo "Skipping GHCR login (public images)."
 
             echo "Writing compose file..."
-            python3 - <<PY
+            export DEPLOY_COMPOSE_FILE="$COMPOSE_FILE"
+            export DEPLOY_NGINX_FILE="$APP_DIR/nginx.default.conf"
+            python3 - <<'PY'
               from pathlib import Path
               import os
 
@@ -322,8 +324,8 @@ jobs:
               }
               """
 
-              Path(r"${COMPOSE_FILE}").write_text(compose_content, encoding="utf-8")
-              Path(r"${APP_DIR}/nginx.default.conf").write_text(nginx_content, encoding="utf-8")
+              Path(os.environ["DEPLOY_COMPOSE_FILE"]).write_text(compose_content, encoding="utf-8")
+              Path(os.environ["DEPLOY_NGINX_FILE"]).write_text(nginx_content, encoding="utf-8")
             PY
 
             cd "$APP_DIR"
