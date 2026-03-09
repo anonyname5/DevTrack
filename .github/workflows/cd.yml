@@ -195,7 +195,8 @@ jobs:
 
             APP_DIR="/opt/devtrack"
             if ! mkdir -p "$APP_DIR" 2>/dev/null; then
-              APP_DIR="$HOME/devtrack"
+              HOME_DIR="${HOME:-$(pwd)}"
+              APP_DIR="$HOME_DIR/devtrack"
               mkdir -p "$APP_DIR"
               echo "No permission for /opt. Using APP_DIR=$APP_DIR"
             else
