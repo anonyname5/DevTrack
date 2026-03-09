@@ -230,15 +230,7 @@ jobs:
             }
             echo "Debug helper ready."
 
-            echo "Checking GHCR credentials..."
-            case "${GHCR_USERNAME:-}:${GHCR_PAT:-}" in
-              :)
-                echo "GHCR credentials not provided. Assuming package is public."
-                ;;
-              *)
-                echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-                ;;
-            esac
+            echo "Skipping GHCR login (public images)."
 
             echo "Writing compose file..."
             cat > "$COMPOSE_FILE" <<COMPOSE_YAML
