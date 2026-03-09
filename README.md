@@ -167,3 +167,22 @@ Option B (commit-based trigger):
 3. Push to remote.
 
 Because `cd.yml` uses path filters, frontend-only changes do not trigger backend deployment.
+
+## Frontend CD (VPS + Nginx)
+
+Defined in `.github/workflows/frontend-cd.yml`:
+
+- Triggers on push to `Dev` when `frontend/**` changes
+- Builds React app in `frontend/`
+- Uploads `frontend/dist` to VPS temp path
+- Publishes files to Nginx web root and reloads Nginx
+
+### Required Secrets for Frontend CD
+
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- Optional: `VPS_SSH_PASSPHRASE`
+- Optional: `VPS_PORT` (defaults to `22`)
+- `VITE_API_BASE_URL` (the API URL frontend should call)
+- Optional: `FRONTEND_WEB_ROOT` (defaults to `/var/www/devtrack-frontend`)
