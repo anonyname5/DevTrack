@@ -191,6 +191,7 @@ jobs:
               echo "Docker Compose is not installed on VPS and automatic install failed."
               exit 1
             fi
+            echo "Compose is available."
 
             APP_DIR="/opt/devtrack"
             mkdir -p "$APP_DIR"
@@ -217,7 +218,8 @@ jobs:
               echo "GHCR credentials not provided. Assuming package is public."
             fi
 
-            cat > "$COMPOSE_FILE" <<EOF
+            echo "Writing compose file..."
+            cat > "$COMPOSE_FILE" <<COMPOSE_YAML
             services:
               mysql:
                 image: mysql:8.0.36
@@ -281,9 +283,10 @@ jobs:
 
             volumes:
               mysql-data:
-            EOF
+            COMPOSE_YAML
 
-            cat > "$APP_DIR/nginx.default.conf" <<'EOF'
+            echo "Writing nginx config..."
+            cat > "$APP_DIR/nginx.default.conf" <<'NGINX_CONF'
             server {
               listen 80;
               server_name _;
@@ -308,9 +311,10 @@ jobs:
                 proxy_set_header X-Forwarded-Proto $scheme;
               }
             }
-            EOF
+            NGINX_CONF
 
             cd "$APP_DIR"
+            echo "Starting compose deploy..."
 
             run_compose() {
               if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
