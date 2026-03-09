@@ -328,13 +328,17 @@ jobs:
 
             check_health() {
               if command -v curl > /dev/null 2>&1; then
-                curl -fsS "http://localhost:${APP_PORT}/api/health" > /dev/null
-                return $?
+                if curl -fsS "http://localhost:${APP_PORT}/api/health" > /dev/null 2>&1; then
+                  return 0
+                fi
+                return 1
               fi
 
               if command -v wget > /dev/null 2>&1; then
-                wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health"
-                return $?
+                if wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health"; then
+                  return 0
+                fi
+                return 1
               fi
 
               echo "Neither curl nor wget is installed on VPS; skipping HTTP health check."
