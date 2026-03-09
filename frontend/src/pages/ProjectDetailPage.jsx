@@ -5,6 +5,11 @@ import { clearToken } from '../lib/authStorage'
 import ConfirmModal from '../components/ConfirmModal'
 import ToastStack from '../components/ToastStack'
 
+const DEFAULT_TASK_META = {
+  priority: 'medium',
+  dueDate: '',
+}
+
 function ProjectDetailPage() {
   const navigate = useNavigate()
   const { projectId } = useParams()
@@ -13,9 +18,14 @@ function ProjectDetailPage() {
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskPriority, setNewTaskPriority] = useState('medium')
+  const [newTaskDueDate, setNewTaskDueDate] = useState('')
+  const [taskSearchTerm, setTaskSearchTerm] = useState('')
+  const [taskSortBy, setTaskSortBy] = useState('recent')
   const [taskFilter, setTaskFilter] = useState('all')
   const [editingTaskId, setEditingTaskId] = useState(null)
   const [editingTaskTitle, setEditingTaskTitle] = useState('')
+  const [taskMeta, setTaskMeta] = useState({})
   const [isEditingProjectName, setIsEditingProjectName] = useState(false)
   const [projectNameDraft, setProjectNameDraft] = useState('')
   const [confirmModal, setConfirmModal] = useState({
@@ -27,6 +37,12 @@ function ProjectDetailPage() {
   const [toasts, setToasts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false)
+
+  const taskMetaStorageKey = useMemo(
+    () => `devtrack-task-meta-project-${numericProjectId}`,
+    [numericProjectId],
+  )
 
   function showToast(message, type = 'success') {
     const toastId = Date.now() + Math.random()
@@ -94,16 +110,56 @@ function ProjectDetailPage() {
     loadProjectAndTasks()
   }, [loadProjectAndTasks])
 
+  useEffect(() => {
+    if (!Number.isFinite(numericProjectId)) {
+      return
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(taskMetaStorageKey)
+      if (!rawValue) {
+        setTaskMeta({})
+        return
+      }
+      const parsedValue = JSON.parse(rawValue)
+      if (parsedValue && typeof parsedValue === 'object') {
+        setTaskMeta(parsedValue)
+      } else {
+        setTaskMeta({})
+      }
+    } catch {
+      setTaskMeta({})
+    }
+  }, [numericProjectId, taskMetaStorageKey])
+
+  useEffect(() => {
+    window.localStorage.setItem(taskMetaStorageKey, JSON.stringify(taskMeta))
+  }, [taskMeta, taskMetaStorageKey])
+
   async function handleCreateTask(event) {
     event.preventDefault()
     setError('')
     setIsSubmitting(true)
 
     try {
-      await apiClient.post(`/api/projects/${numericProjectId}/tasks`, {
+      const response = await apiClient.post(`/api/projects/${numericProjectId}/tasks`, {
         title: newTaskTitle,
       })
       setNewTaskTitle('')
+      setNewTaskPriority('medium')
+      setNewTaskDueDate('')
+
+      const createdTaskId = Number(response?.data?.id)
+      if (Number.isFinite(createdTaskId)) {
+        setTaskMeta((currentTaskMeta) => ({
+          ...currentTaskMeta,
+          [createdTaskId]: {
+            priority: newTaskPriority,
+            dueDate: newTaskDueDate,
+          },
+        }))
+      }
+
       await loadProjectAndTasks()
       showToast('Task created.')
     } catch (requestError) {
@@ -236,6 +292,16 @@ function ProjectDetailPage() {
     setEditingTaskTitle('')
   }
 
+  function updateTaskMeta(taskId, patch) {
+    setTaskMeta((currentTaskMeta) => ({
+      ...currentTaskMeta,
+      [taskId]: {
+        ...(currentTaskMeta[taskId] ?? DEFAULT_TASK_META),
+        ...patch,
+      },
+    }))
+  }
+
   function openDeleteTaskModal(taskId) {
     setConfirmModal({
       isOpen: true,
@@ -272,20 +338,153 @@ function ProjectDetailPage() {
     closeConfirmModal()
   }
 
+  async function handleCompleteAllOpenTasks() {
+    const openTaskIds = tasks.filter((task) => !task.isCompleted).map((task) => task.id)
+    if (openTaskIds.length === 0) {
+      showToast('All tasks are already done.')
+      return
+    }
+
+    setIsBulkUpdating(true)
+    setError('')
+    try {
+      await Promise.all(
+        openTaskIds.map((taskId) =>
+          apiClient.patch(`/api/tasks/${taskId}/complete`, { isCompleted: true }),
+        ),
+      )
+      await loadProjectAndTasks()
+      showToast(`Marked ${openTaskIds.length} task(s) as done.`)
+    } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        handleUnauthorized()
+        return
+      }
+      setError(requestError?.response?.data?.message ?? 'Failed to complete all open tasks.')
+      showToast('Unable to complete all open tasks.', 'error')
+    } finally {
+      setIsBulkUpdating(false)
+    }
+  }
+
+  async function handleReopenAllDoneTasks() {
+    const doneTaskIds = tasks.filter((task) => task.isCompleted).map((task) => task.id)
+    if (doneTaskIds.length === 0) {
+      showToast('No completed tasks to reopen.')
+      return
+    }
+
+    setIsBulkUpdating(true)
+    setError('')
+    try {
+      await Promise.all(
+        doneTaskIds.map((taskId) =>
+          apiClient.patch(`/api/tasks/${taskId}/complete`, { isCompleted: false }),
+        ),
+      )
+      await loadProjectAndTasks()
+      showToast(`Reopened ${doneTaskIds.length} task(s).`)
+    } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        handleUnauthorized()
+        return
+      }
+      setError(requestError?.response?.data?.message ?? 'Failed to reopen completed tasks.')
+      showToast('Unable to reopen completed tasks.', 'error')
+    } finally {
+      setIsBulkUpdating(false)
+    }
+  }
+
   const completedTasks = tasks.filter((task) => task.isCompleted).length
   const openTasks = tasks.length - completedTasks
   const taskProgress = tasks.length === 0 ? 0 : Math.round((completedTasks / tasks.length) * 100)
-  const visibleTasks = tasks.filter((task) => {
-    if (taskFilter === 'done') {
-      return task.isCompleted
+  const normalizedTaskSearch = taskSearchTerm.trim().toLowerCase()
+  const searchedTasks = tasks.filter((task) =>
+    task.title.toLowerCase().includes(normalizedTaskSearch),
+  )
+  const sortedTasks = [...searchedTasks].sort((left, right) => {
+    if (taskSortBy === 'title') {
+      return left.title.localeCompare(right.title)
     }
-
-    if (taskFilter === 'todo') {
-      return !task.isCompleted
-    }
-
-    return true
+    return right.id - left.id
   })
+  const todoTasks = sortedTasks.filter((task) => !task.isCompleted)
+  const doneTasks = sortedTasks.filter((task) => task.isCompleted)
+
+  function renderTaskCard(task) {
+    const metadata = taskMeta[task.id] ?? DEFAULT_TASK_META
+    return (
+      <li key={task.id}>
+        <div className="row">
+          <label className="task-row">
+            <input
+              type="checkbox"
+              checked={task.isCompleted}
+              onChange={() => handleToggleTask(task.id, task.isCompleted)}
+            />
+            <span className={task.isCompleted ? 'task-done' : ''}>{task.title}</span>
+            <span className={`status-pill ${task.isCompleted ? 'done' : 'todo'}`}>
+              {task.isCompleted ? 'Done' : 'To do'}
+            </span>
+          </label>
+        </div>
+
+        <div className="task-meta-grid section-top">
+          <label>
+            Priority
+            <select
+              value={metadata.priority}
+              onChange={(event) => updateTaskMeta(task.id, { priority: event.target.value })}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label>
+            Due date
+            <input
+              type="date"
+              value={metadata.dueDate}
+              onChange={(event) => updateTaskMeta(task.id, { dueDate: event.target.value })}
+            />
+          </label>
+        </div>
+        <p className="muted local-meta-note">Priority and due date are saved locally.</p>
+
+        {editingTaskId === task.id ? (
+          <form
+            className="row section-top"
+            onSubmit={(event) => {
+              event.preventDefault()
+              handleEditTask(task.id, task.title)
+            }}
+          >
+            <input
+              type="text"
+              value={editingTaskTitle}
+              onChange={(event) => setEditingTaskTitle(event.target.value)}
+              required
+            />
+            <button type="submit">Save</button>
+            <button type="button" className="ghost" onClick={cancelEditTask}>
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="row section-top">
+            <button type="button" className="ghost" onClick={() => beginEditTask(task.id, task.title)}>
+              Edit
+            </button>
+            <button type="button" className="danger" onClick={() => openDeleteTaskModal(task.id)}>
+              Delete
+            </button>
+          </div>
+        )}
+      </li>
+    )
+  }
 
   return (
     <main className="page">
@@ -375,94 +574,101 @@ function ProjectDetailPage() {
             onChange={(event) => setNewTaskTitle(event.target.value)}
             required
           />
+          <select
+            value={newTaskPriority}
+            onChange={(event) => setNewTaskPriority(event.target.value)}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <input
+            type="date"
+            value={newTaskDueDate}
+            onChange={(event) => setNewTaskDueDate(event.target.value)}
+          />
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Adding...' : 'Add task'}
           </button>
         </form>
 
         <div className="row section-top controls-row">
-          <p className="muted">Filter tasks</p>
+          <input
+            type="text"
+            placeholder="Search task title"
+            value={taskSearchTerm}
+            onChange={(event) => setTaskSearchTerm(event.target.value)}
+          />
           <select value={taskFilter} onChange={(event) => setTaskFilter(event.target.value)}>
             <option value="all">All</option>
             <option value="todo">To do</option>
             <option value="done">Done</option>
           </select>
+          <select value={taskSortBy} onChange={(event) => setTaskSortBy(event.target.value)}>
+            <option value="recent">Newest</option>
+            <option value="title">Title</option>
+          </select>
+        </div>
+
+        <div className="row section-top">
+          <button type="button" className="ghost" disabled={isBulkUpdating} onClick={handleCompleteAllOpenTasks}>
+            Complete all open
+          </button>
+          <button type="button" className="ghost" disabled={isBulkUpdating} onClick={handleReopenAllDoneTasks}>
+            Reopen all done
+          </button>
         </div>
 
         {isLoading ? (
-          <ul className="list section-top">
-            {[1, 2, 3, 4].map((skeletonId) => (
-              <li key={skeletonId} className="skeleton-item">
-                <span className="skeleton-line w-70" />
-                <span className="skeleton-line w-35" />
-              </li>
-            ))}
-          </ul>
+          <div className="kanban-grid section-top">
+            <section className="kanban-column">
+              <h3>To do</h3>
+              <ul className="list">
+                {[1, 2].map((skeletonId) => (
+                  <li key={skeletonId} className="skeleton-item">
+                    <span className="skeleton-line w-70" />
+                    <span className="skeleton-line w-35" />
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="kanban-column">
+              <h3>Done</h3>
+              <ul className="list">
+                {[1, 2].map((skeletonId) => (
+                  <li key={skeletonId} className="skeleton-item">
+                    <span className="skeleton-line w-50" />
+                    <span className="skeleton-line w-35" />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
         ) : (
-          <ul className="list section-top">
-            {visibleTasks.map((task) => (
-              <li key={task.id}>
-                <div className="row">
-                  <label className="task-row">
-                    <input
-                      type="checkbox"
-                      checked={task.isCompleted}
-                      onChange={() => handleToggleTask(task.id, task.isCompleted)}
-                    />
-                    <span className={task.isCompleted ? 'task-done' : ''}>{task.title}</span>
-                    <span className={`status-pill ${task.isCompleted ? 'done' : 'todo'}`}>
-                      {task.isCompleted ? 'Done' : 'To do'}
-                    </span>
-                  </label>
-                </div>
-
-                {editingTaskId === task.id ? (
-                  <form
-                    className="row section-top"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      handleEditTask(task.id, task.title)
-                    }}
-                  >
-                    <input
-                      type="text"
-                      value={editingTaskTitle}
-                      onChange={(event) => setEditingTaskTitle(event.target.value)}
-                      required
-                    />
-                    <button type="submit">Save</button>
-                    <button type="button" className="ghost" onClick={cancelEditTask}>
-                      Cancel
-                    </button>
-                  </form>
-                ) : (
-                  <div className="row section-top">
-                    <button
-                      type="button"
-                      className="ghost"
-                      onClick={() => beginEditTask(task.id, task.title)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => openDeleteTaskModal(task.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-            {visibleTasks.length === 0 ? (
-              <li className="empty-state">
-                {tasks.length === 0
-                  ? 'No tasks yet. Add your first task above.'
-                  : 'No tasks match the selected filter.'}
-              </li>
+          <div className="kanban-grid section-top">
+            {taskFilter !== 'done' ? (
+              <section className="kanban-column">
+                <h3>To do ({todoTasks.length})</h3>
+                <ul className="list">
+                  {todoTasks.map(renderTaskCard)}
+                  {todoTasks.length === 0 ? (
+                    <li className="empty-state">No to-do tasks match current filters.</li>
+                  ) : null}
+                </ul>
+              </section>
             ) : null}
-          </ul>
+            {taskFilter !== 'todo' ? (
+              <section className="kanban-column">
+                <h3>Done ({doneTasks.length})</h3>
+                <ul className="list">
+                  {doneTasks.map(renderTaskCard)}
+                  {doneTasks.length === 0 ? (
+                    <li className="empty-state">No done tasks match current filters.</li>
+                  ) : null}
+                </ul>
+              </section>
+            ) : null}
+          </div>
         )}
       </section>
       <ConfirmModal

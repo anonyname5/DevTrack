@@ -72,6 +72,11 @@ h2 {
   font-size: 22px;
 }
 
+h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
 .form {
   display: grid;
   gap: 12px;
@@ -255,7 +260,7 @@ button:disabled {
 }
 
 .controls-row select {
-  width: 150px;
+  width: 140px;
 }
 
 .status-pill {
@@ -357,6 +362,30 @@ button:disabled {
   padding: 18px;
 }
 
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kanban-column {
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.4);
+}
+
+.task-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.local-meta-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
 a {
   color: #7dd3fc;
 }
@@ -386,6 +415,14 @@ a {
 
   .controls-row select {
     width: 100%;
+  }
+
+  .kanban-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-meta-grid {
+    grid-template-columns: 1fr;
   }
 
   .toast-stack {
