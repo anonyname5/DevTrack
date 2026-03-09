@@ -32,8 +32,12 @@ function RegisterPage() {
 
   return (
     <main className="page">
-      <section className="card">
-        <h1>Create account</h1>
+      <section className="card auth-card">
+        <p className="eyebrow">Get started</p>
+        <h1>Create your DevTrack account</h1>
+        <p className="muted">
+          Start tracking projects and tasks while leveling up your CI/CD workflow.
+        </p>
         <form className="form" onSubmit={handleSubmit}>
           <label>
             Email

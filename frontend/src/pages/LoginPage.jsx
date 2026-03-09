@@ -32,8 +32,12 @@ function LoginPage() {
 
   return (
     <main className="page">
-      <section className="card">
-        <h1>DevTrack Login</h1>
+      <section className="card auth-card">
+        <p className="eyebrow">Welcome back</p>
+        <h1>Sign in to DevTrack</h1>
+        <p className="muted">
+          Continue managing your projects, tasks, and CI/CD learning milestones.
+        </p>
         <form className="form" onSubmit={handleSubmit}>
           <label>
             Email
@@ -59,7 +63,7 @@ function LoginPage() {
           </button>
         </form>
         <p className="helper">
-          No account? <Link to="/register">Create one</Link>
+          No account? <Link to="/register">Create one now</Link>
         </p>
       </section>
     </main>
