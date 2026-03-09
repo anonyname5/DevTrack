@@ -216,117 +216,99 @@ jobs:
             echo "Skipping GHCR login (public images)."
 
             echo "Writing compose file..."
-            export DEPLOY_COMPOSE_FILE="$COMPOSE_FILE"
-            export DEPLOY_NGINX_FILE="$APP_DIR/nginx.default.conf"
-            python3 - <<'PY'
-              from pathlib import Path
-              import os
+            {
+              printf '%s\n' 'services:'
+              printf '%s\n' '  mysql:'
+              printf '%s\n' '    image: mysql:8.0.36'
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    environment:'
+              printf '%s\n' "      MYSQL_ROOT_PASSWORD: \"${MYSQL_ROOT_PASSWORD:-rootpass}\""
+              printf '%s\n' "      MYSQL_DATABASE: \"${DB_NAME}\""
+              printf '%s\n' "      MYSQL_USER: \"${DB_USER}\""
+              printf '%s\n' "      MYSQL_PASSWORD: \"${DB_PASSWORD}\""
+              printf '%s\n' '    volumes:'
+              printf '%s\n' '      - mysql-data:/var/lib/mysql'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  api:'
+              printf '%s\n' "    image: \"${API_IMAGE}\""
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - mysql'
+              printf '%s\n' '    environment:'
+              printf '%s\n' '      ASPNETCORE_ENVIRONMENT: "Development"'
+              printf '%s\n' '      DB_HOST: "mysql"'
+              printf '%s\n' '      DB_PORT: "3306"'
+              printf '%s\n' "      DB_NAME: \"${DB_NAME}\""
+              printf '%s\n' "      DB_USER: \"${DB_USER}\""
+              printf '%s\n' "      DB_PASSWORD: \"${DB_PASSWORD}\""
+              printf '%s\n' "      DB_SERVER_VERSION: \"${DB_SERVER_VERSION}\""
+              printf '%s\n' "      JWT_SECRET: \"${JWT_SECRET}\""
+              printf '%s\n' "      CORS_ALLOWED_ORIGINS: \"${CORS_ALLOWED_ORIGINS}\""
+              printf '%s\n' '    expose:'
+              printf '%s\n' '      - "8080"'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  frontend:'
+              printf '%s\n' "    image: \"${FRONTEND_IMAGE}\""
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - api'
+              printf '%s\n' '    expose:'
+              printf '%s\n' '      - "80"'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  reverse-proxy:'
+              printf '%s\n' '    image: nginx:1.27-alpine'
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - frontend'
+              printf '%s\n' '      - api'
+              printf '%s\n' '    ports:'
+              printf '%s\n' "      - \"${APP_PORT}:80\""
+              printf '%s\n' '    volumes:'
+              printf '%s\n' '      - ./nginx.default.conf:/etc/nginx/conf.d/default.conf:ro'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' 'networks:'
+              printf '%s\n' '  devtrack-net:'
+              printf '%s\n' '    driver: bridge'
+              printf '%s\n' ''
+              printf '%s\n' 'volumes:'
+              printf '%s\n' '  mysql-data:'
+            } > "$COMPOSE_FILE"
 
-              mysql_root_password = os.environ.get("MYSQL_ROOT_PASSWORD") or "rootpass"
-              db_name = os.environ["DB_NAME"]
-              db_user = os.environ["DB_USER"]
-              db_password = os.environ["DB_PASSWORD"]
-              db_server_version = os.environ["DB_SERVER_VERSION"]
-              jwt_secret = os.environ["JWT_SECRET"]
-              cors_allowed_origins = os.environ["CORS_ALLOWED_ORIGINS"]
-              api_image = os.environ["API_IMAGE"]
-              frontend_image = os.environ["FRONTEND_IMAGE"]
-              app_port = os.environ["APP_PORT"]
-
-              compose_content = f"""services:
-                mysql:
-                  image: mysql:8.0.36
-                  restart: unless-stopped
-                  environment:
-                    MYSQL_ROOT_PASSWORD: {mysql_root_password}
-                    MYSQL_DATABASE: {db_name}
-                    MYSQL_USER: {db_user}
-                    MYSQL_PASSWORD: {db_password}
-                  volumes:
-                    - mysql-data:/var/lib/mysql
-                  networks:
-                    - devtrack-net
-
-                api:
-                  image: {api_image}
-                  restart: unless-stopped
-                  depends_on:
-                    - mysql
-                  environment:
-                    ASPNETCORE_ENVIRONMENT: Development
-                    DB_HOST: mysql
-                    DB_PORT: 3306
-                    DB_NAME: {db_name}
-                    DB_USER: {db_user}
-                    DB_PASSWORD: {db_password}
-                    DB_SERVER_VERSION: {db_server_version}
-                    JWT_SECRET: {jwt_secret}
-                    CORS_ALLOWED_ORIGINS: {cors_allowed_origins}
-                  expose:
-                    - "8080"
-                  networks:
-                    - devtrack-net
-
-                frontend:
-                  image: {frontend_image}
-                  restart: unless-stopped
-                  depends_on:
-                    - api
-                  expose:
-                    - "80"
-                  networks:
-                    - devtrack-net
-
-                reverse-proxy:
-                  image: nginx:1.27-alpine
-                  restart: unless-stopped
-                  depends_on:
-                    - frontend
-                    - api
-                  ports:
-                    - "{app_port}:80"
-                  volumes:
-                    - ./nginx.default.conf:/etc/nginx/conf.d/default.conf:ro
-                  networks:
-                    - devtrack-net
-
-              networks:
-                devtrack-net:
-                  driver: bridge
-
-              volumes:
-                mysql-data:
-              """
-
-              nginx_content = """server {
-                  listen 80;
-                  server_name _;
-
-                  client_max_body_size 10m;
-
-                  location /api/ {
-                      proxy_pass http://api:8080/api/;
-                      proxy_http_version 1.1;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto $scheme;
-                  }
-
-                  location / {
-                      proxy_pass http://frontend:80;
-                      proxy_http_version 1.1;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto $scheme;
-                  }
-              }
-              """
-
-              Path(os.environ["DEPLOY_COMPOSE_FILE"]).write_text(compose_content, encoding="utf-8")
-              Path(os.environ["DEPLOY_NGINX_FILE"]).write_text(nginx_content, encoding="utf-8")
-            PY
+            echo "Writing nginx config..."
+            {
+              printf '%s\n' 'server {'
+              printf '%s\n' '    listen 80;'
+              printf '%s\n' '    server_name _;'
+              printf '%s\n' ''
+              printf '%s\n' '    client_max_body_size 10m;'
+              printf '%s\n' ''
+              printf '%s\n' '    location /api/ {'
+              printf '%s\n' '        proxy_pass http://api:8080/api/;'
+              printf '%s\n' '        proxy_http_version 1.1;'
+              printf '%s\n' '        proxy_set_header Host $host;'
+              printf '%s\n' '        proxy_set_header X-Real-IP $remote_addr;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-Proto $scheme;'
+              printf '%s\n' '    }'
+              printf '%s\n' ''
+              printf '%s\n' '    location / {'
+              printf '%s\n' '        proxy_pass http://frontend:80;'
+              printf '%s\n' '        proxy_http_version 1.1;'
+              printf '%s\n' '        proxy_set_header Host $host;'
+              printf '%s\n' '        proxy_set_header X-Real-IP $remote_addr;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-Proto $scheme;'
+              printf '%s\n' '    }'
+              printf '%s\n' '}'
+            } > "$APP_DIR/nginx.default.conf"
 
             cd "$APP_DIR"
             echo "Starting compose deploy..."
