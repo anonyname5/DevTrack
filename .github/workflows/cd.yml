@@ -193,15 +193,23 @@ jobs:
             fi
             echo "Compose is available."
 
-            APP_DIR="/opt/devtrack"
-            if ! mkdir -p "$APP_DIR" 2>/dev/null; then
-              HOME_DIR="${HOME:-$(pwd)}"
-              APP_DIR="$HOME_DIR/devtrack"
-              mkdir -p "$APP_DIR"
-              echo "No permission for /opt. Using APP_DIR=$APP_DIR"
-            else
-              echo "Using APP_DIR=$APP_DIR"
+            APP_DIR=""
+            for CANDIDATE_DIR in "/opt/devtrack" "${HOME:-}/devtrack" "/tmp/devtrack"; do
+              if [ -z "$CANDIDATE_DIR" ] || [ "$CANDIDATE_DIR" = "/devtrack" ]; then
+                continue
+              fi
+
+              if mkdir -p "$CANDIDATE_DIR" 2>/dev/null && [ -w "$CANDIDATE_DIR" ]; then
+                APP_DIR="$CANDIDATE_DIR"
+                break
+              fi
+            done
+
+            if [ -z "$APP_DIR" ]; then
+              echo "Unable to find a writable deploy directory."
+              exit 1
             fi
+            echo "Using APP_DIR=$APP_DIR"
             COMPOSE_FILE="$APP_DIR/docker-compose.staging.yml"
 
             show_debug_state() {
