@@ -183,8 +183,6 @@ jobs:
               fi
             }
 
-            trap 'echo "Deploy script failed. Collecting diagnostics..."; show_debug_state' ERR
-
             if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_PAT:-}" ]; then
               echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             else
@@ -286,12 +284,30 @@ jobs:
 
             cd "$APP_DIR"
 
+            run_compose() {
+              if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
+                docker compose -f "$COMPOSE_FILE" "$@"
+              else
+                docker-compose -f "$COMPOSE_FILE" "$@"
+              fi
+            }
+
             if [ "$COMPOSE_MODE" = "docker_compose_v2" ]; then
-              docker compose -f "$COMPOSE_FILE" pull
-              docker compose -f "$COMPOSE_FILE" up -d
+              echo "Using docker compose (v2)."
             else
-              docker-compose -f "$COMPOSE_FILE" pull
-              docker-compose -f "$COMPOSE_FILE" up -d
+              echo "Using docker-compose (v1)."
+            fi
+
+            if ! run_compose pull; then
+              echo "Compose pull failed."
+              show_debug_state
+              exit 1
+            fi
+
+            if ! run_compose up -d; then
+              echo "Compose up failed."
+              show_debug_state
+              exit 1
             fi
 
             check_health() {
