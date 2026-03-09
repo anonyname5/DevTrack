@@ -231,11 +231,14 @@ jobs:
             echo "Debug helper ready."
 
             echo "Checking GHCR credentials..."
-            if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_PAT:-}" ]; then
-              echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            else
-              echo "GHCR credentials not provided. Assuming package is public."
-            fi
+            case "${GHCR_USERNAME:-}:${GHCR_PAT:-}" in
+              :)
+                echo "GHCR credentials not provided. Assuming package is public."
+                ;;
+              *)
+                echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+                ;;
+            esac
 
             echo "Writing compose file..."
             cat > "$COMPOSE_FILE" <<COMPOSE_YAML
