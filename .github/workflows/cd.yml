@@ -1,0 +1,172 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - Dev
+      - Production
+      - production
+    paths:
+      - "src/DevTrack.Api/**"
+      - "src/**/*.csproj"
+      - "DevTrack.sln"
+      - ".github/workflows/cd.yml"
+      - "src/DevTrack.Api/Dockerfile"
+      - ".dockerignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: devtrack-api
+  REGISTRY: ghcr.io
+
+jobs:
+  docker-build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Determine deployment target
+        id: target
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "Dev" ]; then
+            echo "deploy_env=staging" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=stg" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "Production" ] || [ "${GITHUB_REF_NAME}" = "production" ]; then
+            echo "deploy_env=production" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unsupported branch for CD: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Generate image metadata
+        id: meta
+        run: |
+          echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${{ steps.target.outputs.tag_prefix }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "stable_tag=${{ steps.target.outputs.tag_prefix }}-latest" >> "$GITHUB_OUTPUT"
+          echo "image_repo=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f src/DevTrack.Api/Dockerfile \
+            -t ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }} \
+            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }} \
+            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }} \
+            .
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GHCR
+        run: |
+          docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
+          docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }}
+
+      - name: Dry-run deploy script
+        run: |
+          echo "Target environment: ${{ steps.target.outputs.deploy_env }}"
+          echo "Image: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "Also pushed stable tag: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }}"
+          echo ""
+          echo "Dry-run script for future VPS deployment:"
+          echo "-------------------------------------------"
+          echo "docker pull ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "docker stop devtrack-api-${{ steps.target.outputs.deploy_env }} || true"
+          echo "docker rm devtrack-api-${{ steps.target.outputs.deploy_env }} || true"
+          echo "docker run -d --name devtrack-api-${{ steps.target.outputs.deploy_env }} -p 8080:8080 ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "curl -f http://localhost:8080/api/health"
+
+      - name: Check VPS deploy secrets
+        id: deploy_secrets
+        if: ${{ github.ref_name == 'Dev' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ] && [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$JWT_SECRET" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "VPS or DB deploy secrets are missing; skipping deploy."
+          fi
+
+      - name: Deploy to VPS staging (Dev branch)
+        if: ${{ github.ref_name == 'Dev' && steps.deploy_secrets.outputs.ready == 'true' }}
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
+          CONTAINER_NAME: ${{ secrets.APP_CONTAINER_NAME != '' && secrets.APP_CONTAINER_NAME || 'devtrack-api-staging' }}
+          NETWORK_NAME: ${{ secrets.DOCKER_NETWORK != '' && secrets.DOCKER_NETWORK || 'devtrack-net' }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_SERVER_VERSION: ${{ secrets.DB_SERVER_VERSION != '' && secrets.DB_SERVER_VERSION || '8.0.36-mysql' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          port: ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
+          script_stop: true
+          envs: IMAGE_REF,CONTAINER_NAME,NETWORK_NAME,DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET,CORS_ALLOWED_ORIGINS
+          script: |
+            docker pull "$IMAGE_REF"
+            docker network create "$NETWORK_NAME" || true
+            docker stop "$CONTAINER_NAME" || true
+            docker rm "$CONTAINER_NAME" || true
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --network "$NETWORK_NAME" \
+              -p 8080:8080 \
+              -e ASPNETCORE_ENVIRONMENT=Development \
+              -e DB_HOST="$DB_HOST" \
+              -e DB_PORT="$DB_PORT" \
+              -e DB_NAME="$DB_NAME" \
+              -e DB_USER="$DB_USER" \
+              -e DB_PASSWORD="$DB_PASSWORD" \
+              -e DB_SERVER_VERSION="$DB_SERVER_VERSION" \
+              -e JWT_SECRET="$JWT_SECRET" \
+              -e CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
+              "$IMAGE_REF"
+            for i in $(seq 1 20); do
+              if curl -fsS http://localhost:8080/api/health > /dev/null; then
+                echo "Health check passed."
+                exit 0
+              fi
+
+              if ! docker ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+                echo "Container exited before becoming healthy."
+                docker logs "$CONTAINER_NAME" || true
+                exit 1
+              fi
+
+              echo "Waiting for API to become healthy... attempt $i/20"
+              sleep 3
+            done
+
+            echo "Health check timed out."
+            docker logs "$CONTAINER_NAME" || true
+            exit 1
