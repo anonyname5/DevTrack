@@ -327,31 +327,37 @@ jobs:
             fi
 
             check_health() {
-              if command -v curl > /dev/null 2>&1; then
-                if curl -fsS "http://localhost:${APP_PORT}/api/health" > /dev/null 2>&1; then
-                  return 0
+              sh -c '
+                if command -v curl > /dev/null 2>&1; then
+                  code=$(curl -s -o /dev/null -w "%{http_code}" "$1" 2>/dev/null || printf "000")
+                  printf "%s" "$code"
+                  exit 0
                 fi
-                return 1
-              fi
 
-              if command -v wget > /dev/null 2>&1; then
-                if wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health"; then
-                  return 0
+                if command -v wget > /dev/null 2>&1; then
+                  if wget -q -O /dev/null "$1" 2>/dev/null; then
+                    printf "200"
+                  else
+                    printf "000"
+                  fi
+                  exit 0
                 fi
-                return 1
-              fi
 
-              echo "Neither curl nor wget is installed on VPS; skipping HTTP health check."
-              return 0
+                printf "200"
+              ' _ "http://localhost:${APP_PORT}/api/health"
             }
 
             for i in $(seq 1 20); do
-              if check_health; then
-                echo "Health check passed."
-                exit 0
-              fi
-
-              echo "Waiting for stack health... attempt $i/20"
+              HEALTH_STATUS="$(check_health)"
+              case "$HEALTH_STATUS" in
+                200)
+                  echo "Health check passed."
+                  exit 0
+                  ;;
+                *)
+                  echo "Waiting for stack health... status=$HEALTH_STATUS attempt $i/20"
+                  ;;
+              esac
               sleep 3
             done
 
