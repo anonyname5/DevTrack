@@ -90,7 +90,7 @@ function DashboardPage() {
         {error ? <p className="error">{error}</p> : null}
 
         {isLoading ? (
-          <p>Loading projects...</p>
+          <p>Loading projects....</p>
         ) : (
           <ul className="list">
             {projects.map((project) => (
