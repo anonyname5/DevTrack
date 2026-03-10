@@ -329,24 +329,21 @@ jobs:
             fi
 
             check_health() {
-              sh -c '
-                if command -v curl > /dev/null 2>&1; then
-                  code=$(curl -s -o /dev/null -w "%{http_code}" "$1" 2>/dev/null || printf "000")
-                  printf "%s" "$code"
-                  exit 0
-                fi
+              if command -v curl > /dev/null 2>&1; then
+                curl -s -o /dev/null -w "%{http_code}" "http://localhost:${APP_PORT}/api/health" 2>/dev/null || printf "000"
+                return 0
+              fi
 
-                if command -v wget > /dev/null 2>&1; then
-                  if wget -q -O /dev/null "$1" 2>/dev/null; then
-                    printf "200"
-                  else
-                    printf "000"
-                  fi
-                  exit 0
+              if command -v wget > /dev/null 2>&1; then
+                if wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health" 2>/dev/null; then
+                  printf "200"
+                else
+                  printf "000"
                 fi
+                return 0
+              fi
 
-                printf "200"
-              ' _ "http://localhost:${APP_PORT}/api/health"
+              printf "200"
             }
 
             for i in $(seq 1 20); do
