@@ -1,4 +1,5 @@
 name: CD
+# Manual trigger bump: 2026-03-09
 
 on:
   push:
@@ -8,10 +9,14 @@ on:
       - production
     paths:
       - "src/DevTrack.Api/**"
+      - "frontend/**"
       - "src/**/*.csproj"
       - "DevTrack.sln"
       - ".github/workflows/cd.yml"
+      - "docker-compose.yml"
+      - "deploy/nginx/**"
       - "src/DevTrack.Api/Dockerfile"
+      - "frontend/Dockerfile"
       - ".dockerignore"
   workflow_dispatch:
 
@@ -20,11 +25,12 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: devtrack-api
+  API_IMAGE_NAME: devtrack-api
+  FRONTEND_IMAGE_NAME: devtrack-frontend
   REGISTRY: ghcr.io
 
 jobs:
-  docker-build-and-push:
+  build-and-push-images:
     runs-on: ubuntu-latest
 
     steps:
@@ -48,19 +54,13 @@ jobs:
       - name: Generate image metadata
         id: meta
         run: |
-          echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          echo "image_tag=${{ steps.target.outputs.tag_prefix }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          echo "stable_tag=${{ steps.target.outputs.tag_prefix }}-latest" >> "$GITHUB_OUTPUT"
-          echo "image_repo=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -f src/DevTrack.Api/Dockerfile \
-            -t ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }} \
-            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }} \
-            -t ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }} \
-            .
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG_PREFIX="${{ steps.target.outputs.tag_prefix }}"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$TAG_PREFIX-$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "stable_tag=$TAG_PREFIX-latest" >> "$GITHUB_OUTPUT"
+          echo "api_image_repo=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.API_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "frontend_image_repo=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.FRONTEND_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -69,24 +69,41 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push image to GHCR
+      - name: Build and push API image
         run: |
-          docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
-          docker push ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }}
+          docker build \
+            -f src/DevTrack.Api/Dockerfile \
+            -t ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.image_tag }} \
+            -t ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.stable_tag }} \
+            .
+          docker push ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.image_tag }}
+          docker push ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.stable_tag }}
+
+      - name: Build and push frontend image
+        run: |
+          docker build \
+            -f frontend/Dockerfile \
+            --build-arg VITE_API_BASE_URL=${{ secrets.FRONTEND_VITE_API_BASE_URL != '' && secrets.FRONTEND_VITE_API_BASE_URL || '' }} \
+            -t ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.image_tag }} \
+            -t ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.stable_tag }} \
+            frontend
+          docker push ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.image_tag }}
+          docker push ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.stable_tag }}
 
       - name: Dry-run deploy script
         run: |
           echo "Target environment: ${{ steps.target.outputs.deploy_env }}"
-          echo "Image: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
-          echo "Also pushed stable tag: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.stable_tag }}"
+          echo "API image: ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "Frontend image: ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.image_tag }}"
+          echo "Also pushed stable tags:"
+          echo "  - ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.stable_tag }}"
+          echo "  - ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.stable_tag }}"
           echo ""
-          echo "Dry-run script for future VPS deployment:"
+          echo "Dry-run script for VPS compose deployment:"
           echo "-------------------------------------------"
-          echo "docker pull ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
-          echo "docker stop devtrack-api-${{ steps.target.outputs.deploy_env }} || true"
-          echo "docker rm devtrack-api-${{ steps.target.outputs.deploy_env }} || true"
-          echo "docker run -d --name devtrack-api-${{ steps.target.outputs.deploy_env }} -p 8080:8080 ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}"
-          echo "curl -f http://localhost:8080/api/health"
+          echo "docker compose -f /opt/devtrack/docker-compose.staging.yml pull"
+          echo "docker compose -f /opt/devtrack/docker-compose.staging.yml up -d"
+          echo "curl -f http://localhost/api/health"
 
       - name: Check VPS deploy secrets
         id: deploy_secrets
@@ -95,35 +112,34 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ] && [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$JWT_SECRET" ]; then
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$JWT_SECRET" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "VPS or DB deploy secrets are missing; skipping deploy."
+            echo "Required deploy secrets are missing; skipping deploy."
           fi
 
-      - name: Deploy to VPS staging (Dev branch)
+      - name: Deploy stack to VPS staging (Dev branch)
         if: ${{ github.ref_name == 'Dev' && steps.deploy_secrets.outputs.ready == 'true' }}
         uses: appleboy/ssh-action@v1.2.0
         env:
-          IMAGE_REF: ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
-          CONTAINER_NAME: ${{ secrets.APP_CONTAINER_NAME != '' && secrets.APP_CONTAINER_NAME || 'devtrack-api-staging' }}
-          NETWORK_NAME: ${{ secrets.DOCKER_NETWORK != '' && secrets.DOCKER_NETWORK || 'devtrack-net' }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
+          API_IMAGE: ${{ steps.meta.outputs.api_image_repo }}:${{ steps.meta.outputs.image_tag }}
+          FRONTEND_IMAGE: ${{ steps.meta.outputs.frontend_image_repo }}:${{ steps.meta.outputs.image_tag }}
+          APP_PORT: ${{ secrets.APP_PORT != '' && secrets.APP_PORT || '80' }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_SERVER_VERSION: ${{ secrets.DB_SERVER_VERSION != '' && secrets.DB_SERVER_VERSION || '8.0.36-mysql' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS != '' && secrets.CORS_ALLOWED_ORIGINS || format('http://{0}', secrets.VPS_HOST) }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -131,42 +147,189 @@ jobs:
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           port: ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
           script_stop: true
-          envs: IMAGE_REF,CONTAINER_NAME,NETWORK_NAME,DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET,CORS_ALLOWED_ORIGINS
+          envs: API_IMAGE,FRONTEND_IMAGE,APP_PORT,MYSQL_ROOT_PASSWORD,GHCR_USERNAME,GHCR_PAT,DB_NAME,DB_USER,DB_PASSWORD,DB_SERVER_VERSION,JWT_SECRET,CORS_ALLOWED_ORIGINS
           script: |
-            docker pull "$IMAGE_REF"
-            docker network create "$NETWORK_NAME" || true
-            docker stop "$CONTAINER_NAME" || true
-            docker rm "$CONTAINER_NAME" || true
-            docker run -d \
-              --name "$CONTAINER_NAME" \
-              --network "$NETWORK_NAME" \
-              -p 8080:8080 \
-              -e ASPNETCORE_ENVIRONMENT=Development \
-              -e DB_HOST="$DB_HOST" \
-              -e DB_PORT="$DB_PORT" \
-              -e DB_NAME="$DB_NAME" \
-              -e DB_USER="$DB_USER" \
-              -e DB_PASSWORD="$DB_PASSWORD" \
-              -e DB_SERVER_VERSION="$DB_SERVER_VERSION" \
-              -e JWT_SECRET="$JWT_SECRET" \
-              -e CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
-              "$IMAGE_REF"
-            for i in $(seq 1 20); do
-              if curl -fsS http://localhost:8080/api/health > /dev/null; then
-                echo "Health check passed."
-                exit 0
+            set -eu
+            set -x
+
+            if ! command -v docker > /dev/null 2>&1; then
+              echo "Docker is not installed or not available in PATH."
+              exit 1
+            fi
+
+            ensure_compose() {
+              if command -v docker-compose > /dev/null 2>&1; then
+                return 0
               fi
 
-              if ! docker ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-                echo "Container exited before becoming healthy."
-                docker logs "$CONTAINER_NAME" || true
-                exit 1
+              echo "docker-compose not found. Attempting install..."
+              if command -v apt-get > /dev/null 2>&1; then
+                apt-get update -y || true
+                apt-get install -y docker-compose || true
               fi
 
-              echo "Waiting for API to become healthy... attempt $i/20"
-              sleep 3
+              if command -v docker-compose > /dev/null 2>&1; then
+                return 0
+              fi
+
+              return 1
+            }
+
+            if ! ensure_compose; then
+              echo "docker-compose is not installed on VPS and automatic install failed."
+              exit 1
+            fi
+            echo "docker-compose is available."
+
+            APP_DIR=""
+            for CANDIDATE_DIR in "/opt/devtrack" "${HOME:-}/devtrack" "/tmp/devtrack"; do
+              if [ -z "$CANDIDATE_DIR" ] || [ "$CANDIDATE_DIR" = "/devtrack" ]; then
+                continue
+              fi
+
+              if mkdir -p "$CANDIDATE_DIR" 2>/dev/null && [ -w "$CANDIDATE_DIR" ]; then
+                APP_DIR="$CANDIDATE_DIR"
+                break
+              fi
             done
 
-            echo "Health check timed out."
-            docker logs "$CONTAINER_NAME" || true
-            exit 1
+            if [ -z "$APP_DIR" ]; then
+              echo "Unable to find a writable deploy directory."
+              exit 1
+            fi
+            echo "Using APP_DIR=$APP_DIR"
+            COMPOSE_FILE="$APP_DIR/docker-compose.staging.yml"
+
+            echo "Defining debug helper..."
+            show_debug_state() {
+              echo "---- debug: docker ps ----"
+              docker ps || true
+              echo "---- debug: compose logs (tail 120) ----"
+              if [ ! -f "$COMPOSE_FILE" ]; then
+                echo "Compose file not found yet: $COMPOSE_FILE"
+                return 0
+              fi
+              docker-compose -f "$COMPOSE_FILE" logs --tail=120 || true
+            }
+            echo "Debug helper ready."
+
+            echo "Skipping GHCR login (public images)."
+
+            echo "Writing compose file..."
+            {
+              printf '%s\n' 'services:'
+              printf '%s\n' '  mysql:'
+              printf '%s\n' '    image: mysql:8.0.36'
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    environment:'
+              printf '%s\n' "      MYSQL_ROOT_PASSWORD: \"${MYSQL_ROOT_PASSWORD:-rootpass}\""
+              printf '%s\n' "      MYSQL_DATABASE: \"${DB_NAME}\""
+              printf '%s\n' "      MYSQL_USER: \"${DB_USER}\""
+              printf '%s\n' "      MYSQL_PASSWORD: \"${DB_PASSWORD}\""
+              printf '%s\n' '    volumes:'
+              printf '%s\n' '      - mysql-data:/var/lib/mysql'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  api:'
+              printf '%s\n' "    image: \"${API_IMAGE}\""
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - mysql'
+              printf '%s\n' '    environment:'
+              printf '%s\n' '      ASPNETCORE_ENVIRONMENT: "Development"'
+              printf '%s\n' '      DB_HOST: "mysql"'
+              printf '%s\n' '      DB_PORT: "3306"'
+              printf '%s\n' "      DB_NAME: \"${DB_NAME}\""
+              printf '%s\n' "      DB_USER: \"${DB_USER}\""
+              printf '%s\n' "      DB_PASSWORD: \"${DB_PASSWORD}\""
+              printf '%s\n' "      DB_SERVER_VERSION: \"${DB_SERVER_VERSION}\""
+              printf '%s\n' "      JWT_SECRET: \"${JWT_SECRET}\""
+              printf '%s\n' "      CORS_ALLOWED_ORIGINS: \"${CORS_ALLOWED_ORIGINS}\""
+              printf '%s\n' '    expose:'
+              printf '%s\n' '      - "8080"'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  frontend:'
+              printf '%s\n' "    image: \"${FRONTEND_IMAGE}\""
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - api'
+              printf '%s\n' '    expose:'
+              printf '%s\n' '      - "80"'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' '  reverse-proxy:'
+              printf '%s\n' '    image: nginx:1.27-alpine'
+              printf '%s\n' '    restart: unless-stopped'
+              printf '%s\n' '    depends_on:'
+              printf '%s\n' '      - frontend'
+              printf '%s\n' '      - api'
+              printf '%s\n' '    ports:'
+              printf '%s\n' "      - \"${APP_PORT}:80\""
+              printf '%s\n' '    volumes:'
+              printf '%s\n' '      - ./nginx.default.conf:/etc/nginx/conf.d/default.conf:ro'
+              printf '%s\n' '    networks:'
+              printf '%s\n' '      - devtrack-net'
+              printf '%s\n' ''
+              printf '%s\n' 'networks:'
+              printf '%s\n' '  devtrack-net:'
+              printf '%s\n' '    driver: bridge'
+              printf '%s\n' ''
+              printf '%s\n' 'volumes:'
+              printf '%s\n' '  mysql-data:'
+            } > "$COMPOSE_FILE"
+
+            echo "Writing nginx config..."
+            {
+              printf '%s\n' 'server {'
+              printf '%s\n' '    listen 80;'
+              printf '%s\n' '    server_name _;'
+              printf '%s\n' ''
+              printf '%s\n' '    client_max_body_size 10m;'
+              printf '%s\n' ''
+              printf '%s\n' '    location /api/ {'
+              printf '%s\n' '        proxy_pass http://api:8080/api/;'
+              printf '%s\n' '        proxy_http_version 1.1;'
+              printf '%s\n' '        proxy_set_header Host $host;'
+              printf '%s\n' '        proxy_set_header X-Real-IP $remote_addr;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-Proto $scheme;'
+              printf '%s\n' '    }'
+              printf '%s\n' ''
+              printf '%s\n' '    location / {'
+              printf '%s\n' '        proxy_pass http://frontend:80;'
+              printf '%s\n' '        proxy_http_version 1.1;'
+              printf '%s\n' '        proxy_set_header Host $host;'
+              printf '%s\n' '        proxy_set_header X-Real-IP $remote_addr;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+              printf '%s\n' '        proxy_set_header X-Forwarded-Proto $scheme;'
+              printf '%s\n' '    }'
+              printf '%s\n' '}'
+            } > "$APP_DIR/nginx.default.conf"
+
+            cd "$APP_DIR"
+            echo "Starting compose deploy..."
+            echo "Using docker-compose."
+
+            if ! docker-compose -f "$COMPOSE_FILE" pull; then
+              echo "Compose pull failed."
+              show_debug_state
+              exit 1
+            fi
+
+            docker-compose -f "$COMPOSE_FILE" down --remove-orphans || true
+
+            if ! docker-compose -f "$COMPOSE_FILE" up -d; then
+              echo "Compose up failed."
+              show_debug_state
+              exit 1
+            fi
+
+            command -v curl > /dev/null 2>&1 || { echo "curl is required for health checks."; show_debug_state; exit 1; }
+
+            timeout 60 sh -c 'until [ "$(curl -s -o /dev/null -w "%{http_code}" "$1" 2>/dev/null || printf "000")" = "200" ]; do echo "Waiting for stack health..."; sleep 3; done' _ "http://localhost:${APP_PORT}/api/health" || { echo "Health check timed out."; show_debug_state; exit 1; }
+
+            echo "Health check passed."

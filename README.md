@@ -1,16 +1,21 @@
 # DevTrack
 
-DevTrack is a CI/CD-focused fullstack learning project.
-This repository currently contains the backend API starter, unit tests, Docker setup, and CI/CD workflow skeletons.
+DevTrack is a CI/CD-focused fullstack learning project for tracking project and task progress.
+It now includes a React frontend, ASP.NET Core API, MySQL database, Docker-based deployment, and a working GitHub Actions CD flow to a VPS.
 
 ## Current Stack
 
+- Frontend: React + Vite
 - Backend: ASP.NET Core Web API (.NET 9)
+- Database: MySQL 8
 - Testing: xUnit
-- Containerization: Docker (multi-stage)
+- Containerization: Docker, Docker Compose, Nginx reverse proxy
 - CI/CD: GitHub Actions
+- Deployment target: VPS over SSH
 
 ## Run Locally
+
+### Backend
 
 1. Restore and build:
    - `dotnet restore DevTrack.sln`
@@ -28,12 +33,24 @@ The frontend app lives in `frontend/`.
 
 1. Setup environment:
    - Copy `frontend/.env.example` to `frontend/.env`
-   - Set `VITE_API_BASE_URL` to your API URL
+   - Set `VITE_API_BASE_URL` to your API URL for local development (example: `http://localhost:5072`)
 2. Install dependencies:
    - `cd frontend`
    - `npm install`
 3. Run frontend:
    - `npm run dev`
+
+## Local Full Stack With Docker Compose
+
+From the repository root:
+
+1. Configure environment variables as needed (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `VITE_API_BASE_URL`)
+2. Start the stack:
+   - `docker-compose up --build`
+3. Open the app:
+   - `http://localhost`
+4. Health check:
+   - `http://localhost/api/health`
 
 ## Database Migration
 
@@ -90,11 +107,29 @@ Defined in `.github/workflows/frontend-ci.yml`:
 Defined in `.github/workflows/cd.yml`:
 
 - Trigger on push to `Dev` (staging simulation) and `Production`/`production` (production simulation)
-- Build Docker image tagged with branch-aware prefixes (`stg-<sha>` or `prod-<sha>`)
-- Push image to GHCR using `GITHUB_TOKEN` (no custom PAT required)
-- Publish stable environment tags (`stg-latest` / `prod-latest`) in addition to SHA tags
-- Includes dry-run deploy script output
-- Automatically deploys `Dev` builds to VPS over SSH when deploy secrets are configured
+- Supports manual runs with `workflow_dispatch`
+- Build and push two GHCR images:
+  - `devtrack-api`
+  - `devtrack-frontend`
+- Tag images with branch-aware prefixes (`stg-<sha>` / `prod-<sha>`) plus stable tags (`stg-latest` / `prod-latest`)
+- Automatically deploys the full stack to VPS over SSH using Docker Compose:
+  - `mysql`
+  - `api`
+  - `frontend`
+  - `reverse-proxy`
+- Regenerates the VPS compose/nginx config during deploy
+- Performs a post-deploy health check against `/api/health`
+
+### Confirmed Staging Flow
+
+The current `Dev` deployment path is working end to end:
+
+1. Build backend and frontend images
+2. Push images to GHCR
+3. SSH into the VPS
+4. Write the staging compose file and nginx config
+5. Pull images and recreate the stack with `docker-compose`
+6. Verify the deployment with `http://localhost:<APP_PORT>/api/health`
 
 ### Required Repository Settings
 
@@ -107,49 +142,36 @@ Defined in `.github/workflows/cd.yml`:
 - `VPS_USER`
 - `VPS_SSH_KEY`
 - Optional: `VPS_PORT` (defaults to `22`)
-- Optional: `APP_CONTAINER_NAME` (defaults to `devtrack-api-staging`)
-- `DB_HOST`
-- `DB_PORT`
+- Optional: `APP_PORT` (defaults to `80`)
+- Optional: `MYSQL_ROOT_PASSWORD`
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
 - `JWT_SECRET`
 - Optional: `DB_SERVER_VERSION` (defaults to `8.0.36-mysql`)
-- Optional: `DOCKER_NETWORK` (defaults to `devtrack-net`)
+- Optional: `CORS_ALLOWED_ORIGINS` (defaults to `http://<VPS_HOST>`)
+- Optional: `FRONTEND_VITE_API_BASE_URL` (defaults to empty so the frontend uses same-origin requests through the VPS reverse proxy)
 - Optional: `VPS_SSH_PASSPHRASE` (required if SSH key is passphrase-protected)
+- Optional: `GHCR_USERNAME`
+- Optional: `GHCR_PAT`
+
+`GHCR_USERNAME` and `GHCR_PAT` are only needed if the pushed GHCR packages are private. Public images can be pulled without logging in.
+If `FRONTEND_VITE_API_BASE_URL` was previously set to `/api`, clear it or update it before rebuilding, otherwise requests become `/api/api/...`.
 
 ## Rollback Strategy (Staging)
 
 Use immutable image tags (`stg-<sha>`) for safe rollbacks.
 
-### Capture currently running image
-
-Run on VPS before each manual intervention:
-
-```bash
-docker inspect devtrack-api-staging --format '{{.Config.Image}}'
-```
-
-Save the returned image tag (example: `ghcr.io/anonyname5/devtrack-api:stg-211dae0`).
-
-### Rollback steps
-
-1. Pull the previous known-good tag:
-   - `docker pull ghcr.io/anonyname5/devtrack-api:stg-<previous-sha>`
-2. Replace the container with that image:
-   - `docker stop devtrack-api-staging || true`
-   - `docker rm devtrack-api-staging || true`
-   - `docker run -d --name devtrack-api-staging -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production ghcr.io/anonyname5/devtrack-api:stg-<previous-sha>`
-3. Verify service health:
-   - `curl -f http://localhost:8080/api/health`
-
-### Rollback checklist
-
-- Identify failed deployment tag from GitHub Actions logs.
-- Confirm a previous stable `stg-<sha>` tag exists in GHCR.
-- Redeploy using rollback steps above.
-- Confirm health endpoint and basic API smoke test.
-- Record rollback reason and recovered tag in deployment notes.
+1. Identify previous known-good image tags for both:
+   - `ghcr.io/<owner>/devtrack-api:stg-<sha>`
+   - `ghcr.io/<owner>/devtrack-frontend:stg-<sha>`
+2. Update `/opt/devtrack/docker-compose.staging.yml` image refs on VPS.
+3. Redeploy:
+   - `docker-compose -f /opt/devtrack/docker-compose.staging.yml pull`
+   - `docker-compose -f /opt/devtrack/docker-compose.staging.yml down --remove-orphans`
+   - `docker-compose -f /opt/devtrack/docker-compose.staging.yml up -d`
+4. Verify:
+   - `curl -f http://localhost/api/health`
 
 ## Backend Environment Variables
 
@@ -175,24 +197,15 @@ Option B (commit-based trigger):
 2. Commit to `Dev`.
 3. Push to remote.
 
-Because `cd.yml` uses path filters, frontend-only changes do not trigger backend deployment.
-Example backend-triggered doc update committed to `README.md`.
+`cd.yml` now tracks backend and frontend deploy files, so frontend changes can trigger full stack deployment.
 
 ## Frontend CD (VPS + Nginx)
 
 Defined in `.github/workflows/frontend-cd.yml`:
 
-- Triggers on push to `Dev` when `frontend/**` changes
-- Builds React app in `frontend/`
-- Uploads `frontend/dist` to VPS temp path
-- Publishes files to Nginx web root and reloads Nginx
+- Manual helper workflow only (`workflow_dispatch`)
+- Frontend deployment is now handled by `.github/workflows/cd.yml` in the containerized stack
 
 ### Required Secrets for Frontend CD
 
-- `VPS_HOST`
-- `VPS_USER`
-- `VPS_SSH_KEY`
-- Optional: `VPS_SSH_PASSPHRASE`
-- Optional: `VPS_PORT` (defaults to `22`)
-- `VITE_API_BASE_URL` (the API URL frontend should call)
-- Optional: `FRONTEND_WEB_ROOT` (defaults to `/var/www/devtrack-frontend`)
+- None (use the CD workflow secrets list above)
