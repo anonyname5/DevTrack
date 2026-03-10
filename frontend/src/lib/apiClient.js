@@ -1,8 +1,10 @@
 import axios from 'axios'
 import { getToken } from './authStorage'
 
+const defaultBaseUrl = import.meta.env.DEV ? 'http://localhost:5072' : ''
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5072',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? defaultBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
