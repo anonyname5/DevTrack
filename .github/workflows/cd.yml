@@ -328,26 +328,19 @@ jobs:
               exit 1
             fi
 
-            check_health() {
-              if command -v curl > /dev/null 2>&1; then
-                curl -s -o /dev/null -w "%{http_code}" "http://localhost:${APP_PORT}/api/health" 2>/dev/null || printf "000"
-                return 0
-              fi
-
-              if command -v wget > /dev/null 2>&1; then
-                if wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health" 2>/dev/null; then
-                  printf "200"
-                else
-                  printf "000"
-                fi
-                return 0
-              fi
-
-              printf "200"
-            }
-
             for i in $(seq 1 20); do
-              HEALTH_STATUS="$(check_health)"
+              HEALTH_STATUS="200"
+
+              if command -v curl > /dev/null 2>&1; then
+                HEALTH_STATUS="$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${APP_PORT}/api/health" 2>/dev/null || printf "000")"
+              elif command -v wget > /dev/null 2>&1; then
+                if wget -q -O /dev/null "http://localhost:${APP_PORT}/api/health" 2>/dev/null; then
+                  HEALTH_STATUS="200"
+                else
+                  HEALTH_STATUS="000"
+                fi
+              fi
+
               case "$HEALTH_STATUS" in
                 200)
                   echo "Health check passed."
