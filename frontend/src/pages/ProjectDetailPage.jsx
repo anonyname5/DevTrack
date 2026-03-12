@@ -487,140 +487,190 @@ function ProjectDetailPage() {
   }
 
   return (
-    <main className="page">
-      <section className="card wide">
-        <div className="row">
-          <Link className="link-button ghost" to="/dashboard">
-            Back
-          </Link>
-          <button type="button" className="danger" onClick={openDeleteProjectModal}>
-            Delete project
-          </button>
-        </div>
-
-        <div className="row section-top page-header">
+    <main className="page workspace-page">
+      <section className="workspace-shell">
+        <header className="workspace-header">
           <div>
-            <p className="eyebrow">Project details</p>
+            <p className="eyebrow">Project workspace</p>
             <h1>{project?.name ?? 'Project'}</h1>
+            <p className="page-copy">
+              Coordinate task delivery, keep status visible, and manage execution in one board view.
+            </p>
           </div>
-          {!isEditingProjectName ? (
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditingProjectName(true)
-                setProjectNameDraft(project?.name ?? '')
-              }}
-            >
-              Edit project
+          <div className="workspace-actions">
+            <Link className="link-button ghost" to="/dashboard">
+              Back to dashboard
+            </Link>
+            {!isEditingProjectName ? (
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  setIsEditingProjectName(true)
+                  setProjectNameDraft(project?.name ?? '')
+                }}
+              >
+                Edit project
+              </button>
+            ) : null}
+            <button type="button" className="danger" onClick={openDeleteProjectModal}>
+              Delete project
             </button>
-          ) : null}
-        </div>
+          </div>
+        </header>
 
         {isEditingProjectName ? (
-          <form
-            className="row section-top"
-            onSubmit={(event) => {
-              event.preventDefault()
-              handleEditProjectName()
-            }}
-          >
-            <input
-              type="text"
-              value={projectNameDraft}
-              onChange={(event) => setProjectNameDraft(event.target.value)}
-              required
-            />
-            <button type="submit">Save</button>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => {
-                setIsEditingProjectName(false)
-                setProjectNameDraft(project?.name ?? '')
+          <section className="section-card">
+            <div className="section-heading">
+              <div>
+                <h2>Update project name</h2>
+                <p className="muted">Keep the project title aligned with the current scope.</p>
+              </div>
+            </div>
+            <form
+              className="toolbar toolbar-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                handleEditProjectName()
               }}
             >
-              Cancel
-            </button>
-          </form>
+              <input
+                type="text"
+                value={projectNameDraft}
+                onChange={(event) => setProjectNameDraft(event.target.value)}
+                required
+              />
+              <button type="submit">Save</button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  setIsEditingProjectName(false)
+                  setProjectNameDraft(project?.name ?? '')
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          </section>
         ) : null}
 
-        <div className="stats-grid section-top">
+        <section className="stats-grid">
           <article className="stat-card">
             <p>Total tasks</p>
             <strong>{tasks.length}</strong>
+            <span className="stat-footnote">Tracked work items in this project</span>
           </article>
           <article className="stat-card">
             <p>Open tasks</p>
             <strong>{openTasks}</strong>
+            <span className="stat-footnote">Items still requiring action</span>
           </article>
           <article className="stat-card">
             <p>Completed</p>
             <strong>{completedTasks}</strong>
+            <span className="stat-footnote">Tasks marked as delivered</span>
           </article>
-        </div>
+        </section>
 
-        <div className="progress-track section-top">
-          <span className="progress-fill" style={{ width: `${taskProgress}%` }} />
-        </div>
-        <p className="muted">Task progress: {taskProgress}%</p>
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>Delivery progress</h2>
+              <p className="muted">A quick view of overall project completion.</p>
+            </div>
+            <strong className="progress-label">{taskProgress}% complete</strong>
+          </div>
 
-        {error ? <p className="error">{error}</p> : null}
+          <div className="progress-track">
+            <span className="progress-fill" style={{ width: `${taskProgress}%` }} />
+          </div>
+        </section>
 
-        <form className="row section-top" onSubmit={handleCreateTask}>
-          <input
-            type="text"
-            placeholder="New task title"
-            value={newTaskTitle}
-            onChange={(event) => setNewTaskTitle(event.target.value)}
-            required
-          />
-          <select
-            value={newTaskPriority}
-            onChange={(event) => setNewTaskPriority(event.target.value)}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <input
-            type="date"
-            value={newTaskDueDate}
-            onChange={(event) => setNewTaskDueDate(event.target.value)}
-          />
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Adding...' : 'Add task'}
-          </button>
-        </form>
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>Add a task</h2>
+              <p className="muted">Create a task and capture its working priority and due date.</p>
+            </div>
+          </div>
 
-        <div className="row section-top controls-row">
-          <input
-            type="text"
-            placeholder="Search task title"
-            value={taskSearchTerm}
-            onChange={(event) => setTaskSearchTerm(event.target.value)}
-          />
-          <select value={taskFilter} onChange={(event) => setTaskFilter(event.target.value)}>
-            <option value="all">All</option>
-            <option value="todo">To do</option>
-            <option value="done">Done</option>
-          </select>
-          <select value={taskSortBy} onChange={(event) => setTaskSortBy(event.target.value)}>
-            <option value="recent">Newest</option>
-            <option value="title">Title</option>
-          </select>
-        </div>
+          {error ? <p className="error">{error}</p> : null}
 
-        <div className="row section-top">
-          <button type="button" className="ghost" disabled={isBulkUpdating} onClick={handleCompleteAllOpenTasks}>
-            Complete all open
-          </button>
-          <button type="button" className="ghost" disabled={isBulkUpdating} onClick={handleReopenAllDoneTasks}>
-            Reopen all done
-          </button>
-        </div>
+          <form className="toolbar toolbar-form task-create-form" onSubmit={handleCreateTask}>
+            <input
+              type="text"
+              placeholder="New task title"
+              value={newTaskTitle}
+              onChange={(event) => setNewTaskTitle(event.target.value)}
+              required
+            />
+            <select
+              value={newTaskPriority}
+              onChange={(event) => setNewTaskPriority(event.target.value)}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <input
+              type="date"
+              value={newTaskDueDate}
+              onChange={(event) => setNewTaskDueDate(event.target.value)}
+            />
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add task'}
+            </button>
+          </form>
+        </section>
 
-        {isLoading ? (
-          <div className="kanban-grid section-top">
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>Task board</h2>
+              <p className="muted">Filter, update, and review current task execution from one workspace.</p>
+            </div>
+          </div>
+
+          <div className="toolbar controls-row">
+            <input
+              type="text"
+              placeholder="Search tasks"
+              value={taskSearchTerm}
+              onChange={(event) => setTaskSearchTerm(event.target.value)}
+            />
+            <select value={taskFilter} onChange={(event) => setTaskFilter(event.target.value)}>
+              <option value="all">All</option>
+              <option value="todo">To do</option>
+              <option value="done">Done</option>
+            </select>
+            <select value={taskSortBy} onChange={(event) => setTaskSortBy(event.target.value)}>
+              <option value="recent">Newest</option>
+              <option value="title">Title</option>
+            </select>
+          </div>
+
+          <div className="toolbar bulk-actions">
+            <button
+              type="button"
+              className="ghost"
+              disabled={isBulkUpdating}
+              onClick={handleCompleteAllOpenTasks}
+            >
+              Complete all open
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              disabled={isBulkUpdating}
+              onClick={handleReopenAllDoneTasks}
+            >
+              Reopen all done
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="kanban-grid">
             <section className="kanban-column">
               <h3>To do</h3>
               <ul className="list">
@@ -645,7 +695,7 @@ function ProjectDetailPage() {
             </section>
           </div>
         ) : (
-          <div className="kanban-grid section-top">
+          <div className="kanban-grid">
             {taskFilter !== 'done' ? (
               <section className="kanban-column">
                 <h3>To do ({todoTasks.length})</h3>
@@ -670,6 +720,7 @@ function ProjectDetailPage() {
             ) : null}
           </div>
         )}
+        </section>
       </section>
       <ConfirmModal
         isOpen={confirmModal.isOpen}

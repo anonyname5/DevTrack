@@ -108,101 +108,129 @@ function DashboardPage() {
   ).length
 
   return (
-    <main className="page">
-      <section className="card wide dashboard-card">
-        <div className="row page-header">
+    <main className="page workspace-page">
+      <section className="workspace-shell">
+        <header className="workspace-header">
           <div>
-            <p className="eyebrow">Workspace</p>
-            <h1>DevTrack Dashboard</h1>
+            <p className="eyebrow">Operations overview</p>
+            <h1>Workspace dashboard</h1>
+            <p className="page-copy">
+              Review active initiatives, monitor completion trends, and keep delivery plans moving.
+            </p>
           </div>
-          <button type="button" className="ghost" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
+          <div className="workspace-actions">
+            <button type="button" className="ghost" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </header>
 
-        <div className="stats-grid section-top">
+        <section className="stats-grid">
           <article className="stat-card">
             <p>Total projects</p>
             <strong>{totalProjects}</strong>
+            <span className="stat-footnote">Active workstreams in this workspace</span>
           </article>
           <article className="stat-card">
             <p>Average progress</p>
             <strong>{averageProgress}%</strong>
+            <span className="stat-footnote">Average completion across tracked projects</span>
           </article>
           <article className="stat-card">
             <p>Completed</p>
             <strong>{completedProjects}</strong>
+            <span className="stat-footnote">Projects delivered to 100% completion</span>
           </article>
-        </div>
+        </section>
 
-        <form className="row section-top" onSubmit={handleCreateProject}>
-          <input
-            type="text"
-            placeholder="New project name"
-            value={newProjectName}
-            onChange={(event) => setNewProjectName(event.target.value)}
-            required
-          />
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Add project'}
-          </button>
-        </form>
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>Create a new project</h2>
+              <p className="muted">Set up a new initiative and start tracking execution immediately.</p>
+            </div>
+          </div>
 
-        {error ? <p className="error">{error}</p> : null}
+          <form className="toolbar toolbar-form" onSubmit={handleCreateProject}>
+            <input
+              type="text"
+              placeholder="Enter project name"
+              value={newProjectName}
+              onChange={(event) => setNewProjectName(event.target.value)}
+              required
+            />
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Add project'}
+            </button>
+          </form>
+        </section>
 
-        <div className="row section-top controls-row">
-          <input
-            type="text"
-            placeholder="Search project by name"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-            <option value="recent">Newest</option>
-            <option value="name">Name</option>
-            <option value="progress">Progress</option>
-          </select>
-        </div>
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>Project portfolio</h2>
+              <p className="muted">Search and sort the current project list from a single control bar.</p>
+            </div>
+          </div>
 
-        {isLoading ? (
-          <ul className="list">
-            {[1, 2, 3].map((skeletonId) => (
-              <li key={skeletonId} className="skeleton-item">
-                <span className="skeleton-line w-50" />
-                <span className="skeleton-line w-70" />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ul className="list">
-            {visibleProjects.map((project) => (
-              <li key={project.id}>
-                <div className="row">
-                  <div>
-                    <strong>{project.name}</strong>
-                    <p className="muted">Progress: {project.progressPercentage ?? 0}%</p>
-                    <div className="progress-track">
-                      <span
-                        className="progress-fill"
-                        style={{ width: `${project.progressPercentage ?? 0}%` }}
-                      />
+          {error ? <p className="error">{error}</p> : null}
+
+          <div className="toolbar controls-row">
+            <input
+              type="text"
+              placeholder="Search projects"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+              <option value="recent">Newest</option>
+              <option value="name">Name</option>
+              <option value="progress">Progress</option>
+            </select>
+          </div>
+
+          {isLoading ? (
+            <ul className="list project-list">
+              {[1, 2, 3].map((skeletonId) => (
+                <li key={skeletonId} className="skeleton-item project-list-item">
+                  <span className="skeleton-line w-50" />
+                  <span className="skeleton-line w-70" />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="list project-list">
+              {visibleProjects.map((project) => (
+                <li key={project.id} className="project-list-item">
+                  <div className="project-card-main">
+                    <div>
+                      <strong>{project.name}</strong>
+                      <p className="muted">Progress: {project.progressPercentage ?? 0}%</p>
+                    </div>
+                    <div className="project-card-meta">
+                      <div className="progress-track compact">
+                        <span
+                          className="progress-fill"
+                          style={{ width: `${project.progressPercentage ?? 0}%` }}
+                        />
+                      </div>
+                      <Link className="link-button" to={`/projects/${project.id}`}>
+                        Open project
+                      </Link>
                     </div>
                   </div>
-                  <Link className="link-button" to={`/projects/${project.id}`}>
-                    Open
-                  </Link>
-                </div>
-              </li>
-            ))}
-            {visibleProjects.length === 0 ? (
-              <li className="empty-state">
-                {projects.length === 0
-                  ? 'No projects yet. Create your first project above.'
-                  : 'No project matches your search/filter.'}
-              </li>
-            ) : null}
-          </ul>
-        )}
+                </li>
+              ))}
+              {visibleProjects.length === 0 ? (
+                <li className="empty-state">
+                  {projects.length === 0
+                    ? 'No projects yet. Create your first project above.'
+                    : 'No project matches your current search or sorting criteria.'}
+                </li>
+              ) : null}
+            </ul>
+          )}
+        </section>
       </section>
       <ToastStack toasts={toasts} />
     </main>
