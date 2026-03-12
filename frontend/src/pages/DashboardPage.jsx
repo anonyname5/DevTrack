@@ -198,6 +198,12 @@ function DashboardPage() {
                       <div className="org-dropdown-footer">
                         <button 
                           className="org-dropdown-action"
+                          onClick={() => navigate('/organization/settings')}
+                        >
+                          Organization Settings
+                        </button>
+                        <button 
+                          className="org-dropdown-action"
                           onClick={handleCreateOrgClick}
                         >
                           + Create New Organization

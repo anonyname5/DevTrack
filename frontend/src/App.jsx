@@ -4,6 +4,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
+import OrganizationSettingsPage from './pages/OrganizationSettingsPage'
+import AcceptInvitePage from './pages/AcceptInvitePage'
 
 function ProtectedRoute({ children }) {
   if (!getToken()) {
@@ -28,6 +30,14 @@ function App() {
         }
       />
       <Route
+        path="/organization/settings"
+        element={
+          <ProtectedRoute>
+            <OrganizationSettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/projects/:projectId"
         element={
           <ProtectedRoute>
@@ -35,6 +45,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
     </Routes>
   )
 }
