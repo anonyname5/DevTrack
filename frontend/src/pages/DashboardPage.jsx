@@ -196,6 +196,12 @@ function DashboardPage() {
                         >
                           + Create New Organization
                         </button>
+                        <button 
+                          className="org-dropdown-action danger-text"
+                          onClick={handleLogout}
+                        >
+                          Log out
+                        </button>
                       </div>
                     </div>
                   </>
@@ -208,9 +214,7 @@ function DashboardPage() {
             </p>
           </div>
           <div className="workspace-actions">
-            <button type="button" className="ghost" onClick={handleLogout}>
-              Logout
-            </button>
+            {/* Logout moved to dropdown */}
           </div>
         </header>
 

@@ -469,6 +469,8 @@ button:disabled {
   padding: 8px;
   border-top: 1px solid var(--border);
   background: var(--surface);
+  display: grid;
+  gap: 8px;
 }
 
 .org-dropdown-action {
@@ -487,6 +489,17 @@ button:disabled {
   color: var(--primary);
   border-color: var(--primary);
   transform: none;
+}
+
+.org-dropdown-action.danger-text {
+  border: none;
+  color: var(--danger);
+}
+
+.org-dropdown-action.danger-text:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: none;
 }
 
 .helper,
