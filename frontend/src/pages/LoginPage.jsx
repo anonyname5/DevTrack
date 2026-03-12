@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { setToken } from '../lib/authStorage'
+import LoadingOverlay from '../components/LoadingOverlay'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -27,13 +28,14 @@ function LoginPage() {
       navigate(returnUrl || '/dashboard')
     } catch (requestError) {
       setError(requestError?.response?.data?.message ?? 'Login failed.')
-    } finally {
       setIsSubmitting(false)
     }
+    // Note: We don't set isSubmitting(false) on success to prevent flashing the form before navigation
   }
 
   return (
     <main className="page auth-page">
+      <LoadingOverlay isLoading={isSubmitting} message="Signing in..." />
       <section className="auth-shell">
         <aside className="auth-aside">
           <p className="eyebrow">DevTrack workspace</p>
