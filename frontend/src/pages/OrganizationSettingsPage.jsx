@@ -107,7 +107,7 @@ function OrganizationSettingsPage() {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="stats-grid org-settings-grid">
             <section className="section-card">
             <div className="section-heading">
                 <h2>Invite Member</h2>
