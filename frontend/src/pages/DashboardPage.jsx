@@ -17,6 +17,8 @@ function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false)
+
   function showToast(message, type = 'success') {
     const toastId = Date.now() + Math.random()
     setToasts((currentToasts) => [...currentToasts, { id: toastId, message, type }])
@@ -107,6 +109,16 @@ function DashboardPage() {
     navigate('/login')
   }
 
+  function handleOrgSelect(orgId) {
+    selectOrganization(orgId)
+    setIsOrgDropdownOpen(false)
+  }
+
+  function handleCreateOrgClick() {
+    setIsOrgDropdownOpen(false)
+    handleCreateOrg()
+  }
+
   const normalizedSearchTerm = searchTerm.trim().toLowerCase()
   const filteredProjects = projects.filter((project) =>
     project.name?.toLowerCase().includes(normalizedSearchTerm),
@@ -146,30 +158,49 @@ function DashboardPage() {
         <header className="workspace-header">
           <div>
             <div className="org-control-group">
-              <div className="org-select-wrapper">
-                <select 
-                    value={currentOrg?.id || ''} 
-                    onChange={(e) => selectOrganization(parseInt(e.target.value))}
-                    className="org-select"
+              <div className="org-dropdown-wrapper">
+                <button 
+                  className="org-avatar-btn" 
+                  onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
+                  title="Switch organization"
                 >
-                    {organizations.map(org => (
-                    <option key={org.id} value={org.id}>{org.name}</option>
-                    ))}
-                </select>
-                <svg className="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 9l6 6 6-6"/>
-                </svg>
+                  {currentOrg?.name?.charAt(0).toUpperCase() || '?'}
+                </button>
+                
+                {isOrgDropdownOpen && (
+                  <>
+                    <div className="org-dropdown-backdrop" onClick={() => setIsOrgDropdownOpen(false)} />
+                    <div className="org-dropdown-menu">
+                      <div className="org-dropdown-header">
+                        <span className="muted">Switch Organization</span>
+                      </div>
+                      <ul className="org-dropdown-list">
+                        {organizations.map(org => (
+                          <li key={org.id}>
+                            <button 
+                              className={`org-dropdown-item ${currentOrg?.id === org.id ? 'active' : ''}`}
+                              onClick={() => handleOrgSelect(org.id)}
+                            >
+                              {org.name}
+                              {currentOrg?.id === org.id && (
+                                <span className="check-icon">✓</span>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="org-dropdown-footer">
+                        <button 
+                          className="org-dropdown-action"
+                          onClick={handleCreateOrgClick}
+                        >
+                          + Create New Organization
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <button 
-                onClick={handleCreateOrg} 
-                className="icon-button" 
-                title="Create new organization"
-                aria-label="Create new organization"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
-              </button>
             </div>
             <h1>Workspace dashboard</h1>
             <p className="page-copy">
