@@ -4,6 +4,7 @@ import apiClient from '../lib/apiClient'
 import { clearToken } from '../lib/authStorage'
 import ConfirmModal from '../components/ConfirmModal'
 import ToastStack from '../components/ToastStack'
+import { useOrganization } from '../context/OrganizationContext'
 
 const DEFAULT_TASK_META = {
   priority: 'medium',
@@ -14,6 +15,7 @@ function ProjectDetailPage() {
   const navigate = useNavigate()
   const { projectId } = useParams()
   const numericProjectId = useMemo(() => Number(projectId), [projectId])
+  const { selectOrganization } = useOrganization()
 
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
@@ -92,6 +94,9 @@ function ProjectDetailPage() {
       }
 
       setProject(selectedProject)
+      if (selectedProject.organizationId) {
+        selectOrganization(selectedProject.organizationId)
+      }
       setTasks(tasksResponse.data)
     } catch (requestError) {
       if (requestError?.response?.status === 401) {
@@ -104,7 +109,7 @@ function ProjectDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [handleUnauthorized, numericProjectId])
+  }, [handleUnauthorized, numericProjectId, selectOrganization])
 
   useEffect(() => {
     loadProjectAndTasks()

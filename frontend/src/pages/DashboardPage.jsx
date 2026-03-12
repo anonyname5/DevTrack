@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { clearToken } from '../lib/authStorage'
 import ToastStack from '../components/ToastStack'
+import { useOrganization } from '../context/OrganizationContext'
 
 function DashboardPage() {
   const navigate = useNavigate()
+  const { currentOrg, organizations, selectOrganization, createOrganization, loading: orgLoading } = useOrganization()
   const [projects, setProjects] = useState([])
   const [newProjectName, setNewProjectName] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -24,10 +26,15 @@ function DashboardPage() {
   }
 
   const loadProjects = useCallback(async () => {
+    if (!currentOrg) return
+    
     setError('')
+    setIsLoading(true)
 
     try {
-      const response = await apiClient.get('/api/projects')
+      const response = await apiClient.get('/api/projects', {
+        params: { organizationId: currentOrg.id }
+      })
       if (Array.isArray(response.data)) {
         setProjects(response.data)
       } else {
@@ -44,19 +51,28 @@ function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [navigate])
+  }, [navigate, currentOrg])
 
   useEffect(() => {
-    loadProjects()
-  }, [loadProjects])
+    if (currentOrg) {
+      loadProjects()
+    } else if (!orgLoading && organizations.length === 0) {
+        setIsLoading(false) // No orgs, stop loading
+    }
+  }, [loadProjects, currentOrg, orgLoading, organizations.length])
 
   async function handleCreateProject(event) {
     event.preventDefault()
+    if (!currentOrg) return
+
     setError('')
     setIsSubmitting(true)
 
     try {
-      await apiClient.post('/api/projects', { name: newProjectName })
+      await apiClient.post('/api/projects', { 
+        name: newProjectName,
+        organizationId: currentOrg.id
+      })
       setNewProjectName('')
       await loadProjects()
       showToast('Project created successfully.')
@@ -70,6 +86,18 @@ function DashboardPage() {
       showToast('Unable to create project.', 'error')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleCreateOrg() {
+    const name = prompt("Enter organization name:")
+    if (name) {
+      try {
+        await createOrganization(name)
+        showToast("Organization created")
+      } catch (e) {
+        showToast("Failed to create organization", "error")
+      }
     }
   }
 
@@ -107,12 +135,32 @@ function DashboardPage() {
     (project) => (project.progressPercentage ?? 0) >= 100,
   ).length
 
+  if (orgLoading) {
+      return <div className="page workspace-page">Loading workspace...</div>
+  }
+
   return (
     <main className="page workspace-page">
       <section className="workspace-shell">
         <header className="workspace-header">
           <div>
-            <p className="eyebrow">Operations overview</p>
+            <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {organizations.length > 0 ? (
+                <select 
+                    value={currentOrg?.id || ''} 
+                    onChange={(e) => selectOrganization(parseInt(e.target.value))}
+                    className="org-switcher"
+                    style={{ background: 'transparent', border: 'none', color: 'inherit', font: 'inherit', padding: 0, cursor: 'pointer' }}
+                >
+                    {organizations.map(org => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                </select>
+              ) : (
+                <span>No Organization</span>
+              )}
+              <button onClick={handleCreateOrg} className="text-button small" style={{ fontSize: '0.8em', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>+ New</button>
+            </div>
             <h1>Workspace dashboard</h1>
             <p className="page-copy">
               Review active initiatives, monitor completion trends, and manage delivery from one place.
