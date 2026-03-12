@@ -6,11 +6,37 @@ namespace DevTrack.Api.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.HasKey(org => org.Id);
+            entity.Property(org => org.Name).HasMaxLength(100).IsRequired();
+            entity.HasMany(org => org.Members)
+                .WithOne(member => member.Organization)
+                .HasForeignKey(member => member.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(org => org.Projects)
+                .WithOne(project => project.Organization)
+                .HasForeignKey(project => project.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrganizationMember>(entity =>
+        {
+            entity.HasKey(member => member.Id);
+            entity.HasIndex(member => new { member.OrganizationId, member.UserId }).IsUnique();
+            entity.HasOne(member => member.User)
+                .WithMany(user => user.OrganizationMembers)
+                .HasForeignKey(member => member.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(user => user.Id);
