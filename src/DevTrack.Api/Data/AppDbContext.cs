@@ -8,6 +8,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<User> Users => Set<User>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
 
@@ -34,6 +35,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(member => member.User)
                 .WithMany(user => user.OrganizationMembers)
                 .HasForeignKey(member => member.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Invitation>(entity =>
+        {
+            entity.HasKey(inv => inv.Id);
+            entity.HasIndex(inv => inv.Token).IsUnique();
+            entity.Property(inv => inv.Email).HasMaxLength(255).IsRequired();
+            entity.Property(inv => inv.Token).HasMaxLength(100).IsRequired();
+            
+            entity.HasOne(inv => inv.Organization)
+                .WithMany()
+                .HasForeignKey(inv => inv.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(inv => inv.InvitedByUser)
+                .WithMany()
+                .HasForeignKey(inv => inv.InvitedByUserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

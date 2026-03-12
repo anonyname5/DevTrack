@@ -68,6 +68,36 @@ public sealed class OrganizationsController(AppDbContext dbContext) : Controller
         });
     }
 
+    [HttpGet("{id}/members")]
+    public async Task<IActionResult> GetMembers(int id)
+    {
+        int userId = GetUserId();
+
+        // Check if user is a member of the organization
+        var membership = await dbContext.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == id && m.UserId == userId);
+
+        if (membership == null)
+        {
+            return Forbid();
+        }
+
+        var members = await dbContext.OrganizationMembers
+            .Where(m => m.OrganizationId == id)
+            .Include(m => m.User)
+            .Select(m => new
+            {
+                m.Id,
+                m.UserId,
+                m.User!.Email,
+                m.Role,
+                m.JoinedAt
+            })
+            .ToListAsync();
+
+        return Ok(members);
+    }
+
     private int GetUserId()
     {
         string? claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
