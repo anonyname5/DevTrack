@@ -48,12 +48,16 @@ function OrganizationSettingsPage() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await apiClient.post('/api/invitations', {
+      const response = await apiClient.post('/api/invitations', {
         email: inviteEmail,
         organizationId: currentOrg.id,
         role: parseInt(inviteRole)
       })
       showToast('Invitation sent successfully.')
+      // For testing purposes only: Log token to console and alert
+      console.log('TESTING ONLY - Invitation Token:', response.data.token)
+      alert(`TESTING ONLY: Invitation Token created. \n\nLink: ${window.location.origin}/accept-invite?token=${response.data.token}\n\n(This is also logged to console)`)
+      
       setInviteEmail('')
       loadData()
     } catch (err) {
