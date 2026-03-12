@@ -95,7 +95,8 @@ function DashboardPage() {
       try {
         await createOrganization(name)
         showToast("Organization created")
-      } catch (e) {
+      } catch (error) {
+        console.error(error)
         showToast("Failed to create organization", "error")
       }
     }

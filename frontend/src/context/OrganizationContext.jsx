@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import apiClient from '../lib/apiClient'
 import { getToken } from '../lib/authStorage'
 
-const OrganizationContext = createContext()
+// eslint-disable-next-line react-refresh/only-export-components
+export const OrganizationContext = createContext()
 
 export function OrganizationProvider({ children }) {
   const [organizations, setOrganizations] = useState([])
@@ -71,6 +72,7 @@ export function OrganizationProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOrganization() {
   return useContext(OrganizationContext)
 }
