@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { useOrganization } from '../context/OrganizationContext'
 import ToastStack from '../components/ToastStack'
+import CopyLinkModal from '../components/CopyLinkModal'
 
 function OrganizationSettingsPage() {
   const navigate = useNavigate()
@@ -14,6 +15,12 @@ function OrganizationSettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toasts, setToasts] = useState([])
   const [error, setError] = useState('')
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    link: ''
+  })
 
   function showToast(message, type = 'success') {
     const toastId = Date.now() + Math.random()
@@ -54,9 +61,16 @@ function OrganizationSettingsPage() {
         role: parseInt(inviteRole)
       })
       showToast('Invitation sent successfully.')
-      // For testing purposes only: Log token to console and alert
-      console.log('TESTING ONLY - Invitation Token:', response.data.token)
-      alert(`TESTING ONLY: Invitation Token created. \n\nLink: ${window.location.origin}/accept-invite?token=${response.data.token}\n\n(This is also logged to console)`)
+      
+      // Show custom modal with link
+      const inviteLink = `${window.location.origin}/accept-invite?token=${response.data.token}`
+      setModalState({
+        isOpen: true,
+        title: 'Invitation Created',
+        message: 'Share this link with the user to invite them to your organization:',
+        link: inviteLink
+      })
+      console.log('Invitation Link:', inviteLink)
       
       setInviteEmail('')
       loadData()
@@ -179,6 +193,13 @@ function OrganizationSettingsPage() {
         </section>
       </section>
       <ToastStack toasts={toasts} />
+      <CopyLinkModal 
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        title={modalState.title}
+        message={modalState.message}
+        link={modalState.link}
+      />
     </main>
   )
 }
