@@ -211,7 +211,7 @@ function ProjectDetailPage() {
       
       await loadData()
       showToast('Task created')
-    } catch (err) {
+    } catch {
       showToast('Failed to create task', 'error')
     } finally {
       setIsSubmitting(false)
@@ -235,7 +235,7 @@ function ProjectDetailPage() {
       setEditingTask(null)
       await loadData()
       showToast('Task updated')
-    } catch (err) {
+    } catch {
       showToast('Failed to update task', 'error')
     }
   }
@@ -245,7 +245,7 @@ function ProjectDetailPage() {
       await apiClient.delete(`/api/tasks/${taskId}`)
       await loadData()
       showToast('Task deleted')
-    } catch (err) {
+    } catch {
       showToast('Failed to delete task', 'error')
     }
   }
@@ -286,7 +286,7 @@ function ProjectDetailPage() {
 
       try {
         await apiClient.patch(`/api/tasks/${activeId}/status`, { status: newStatus })
-      } catch (err) {
+      } catch {
         showToast('Failed to move task', 'error')
         loadData() 
       }
@@ -347,6 +347,8 @@ function ProjectDetailPage() {
              </article>
           </div>
 
+          {error && <p className="error">{error}</p>}
+
           <section className="section-card">
             <div className="section-heading">
               <h2>Add Task</h2>
@@ -379,18 +381,29 @@ function ProjectDetailPage() {
             </form>
           </section>
 
-          <div className="kanban-board">
-            {Object.values(TASK_STATUSES).map(status => (
-              <KanbanColumn 
-                key={status.id} 
-                status={status} 
-                tasks={tasksByStatus[status.id] || []} 
-                onEdit={setEditingTask} 
-                onDelete={(id) => setConfirmModal({ isOpen: true, action: 'deleteTask', taskId: id })} 
-              />
-            ))}
-          </div>
-
+          {isLoading ? (
+            <div className="kanban-board">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="kanban-column" style={{ minHeight: '300px' }}>
+                  <div className="skeleton-line w-50" style={{ marginBottom: '16px' }} />
+                  <div className="skeleton-item" style={{ height: '80px', marginBottom: '12px' }} />
+                  <div className="skeleton-item" style={{ height: '80px' }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="kanban-board">
+              {Object.values(TASK_STATUSES).map(status => (
+                <KanbanColumn 
+                  key={status.id} 
+                  status={status} 
+                  tasks={tasksByStatus[status.id] || []} 
+                  onEdit={setEditingTask} 
+                  onDelete={(id) => setConfirmModal({ isOpen: true, action: 'deleteTask', taskId: id })} 
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <DragOverlay>
