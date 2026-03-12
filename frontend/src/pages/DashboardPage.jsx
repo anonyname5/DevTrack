@@ -145,22 +145,31 @@ function DashboardPage() {
       <section className="workspace-shell">
         <header className="workspace-header">
           <div>
-            <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {organizations.length > 0 ? (
+            <div className="org-control-group">
+              <div className="org-select-wrapper">
                 <select 
                     value={currentOrg?.id || ''} 
                     onChange={(e) => selectOrganization(parseInt(e.target.value))}
-                    className="org-switcher"
-                    style={{ background: 'transparent', border: 'none', color: 'inherit', font: 'inherit', padding: 0, cursor: 'pointer' }}
+                    className="org-select"
                 >
                     {organizations.map(org => (
                     <option key={org.id} value={org.id}>{org.name}</option>
                     ))}
                 </select>
-              ) : (
-                <span>No Organization</span>
-              )}
-              <button onClick={handleCreateOrg} className="text-button small" style={{ fontSize: '0.8em', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>+ New</button>
+                <svg className="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </div>
+              <button 
+                onClick={handleCreateOrg} 
+                className="icon-button" 
+                title="Create new organization"
+                aria-label="Create new organization"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
             </div>
             <h1>Workspace dashboard</h1>
             <p className="page-copy">
