@@ -115,7 +115,7 @@ function DashboardPage() {
             <p className="eyebrow">Operations overview</p>
             <h1>Workspace dashboard</h1>
             <p className="page-copy">
-              Review active initiatives, monitor completion trends, and keep delivery plans moving.
+              Review active initiatives, monitor completion trends, and manage delivery from one place.
             </p>
           </div>
           <div className="workspace-actions">
@@ -146,47 +146,41 @@ function DashboardPage() {
         <section className="section-card">
           <div className="section-heading">
             <div>
-              <h2>Create a new project</h2>
-              <p className="muted">Set up a new initiative and start tracking execution immediately.</p>
-            </div>
-          </div>
-
-          <form className="toolbar toolbar-form" onSubmit={handleCreateProject}>
-            <input
-              type="text"
-              placeholder="Enter project name"
-              value={newProjectName}
-              onChange={(event) => setNewProjectName(event.target.value)}
-              required
-            />
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Add project'}
-            </button>
-          </form>
-        </section>
-
-        <section className="section-card">
-          <div className="section-heading">
-            <div>
               <h2>Project portfolio</h2>
-              <p className="muted">Search and sort the current project list from a single control bar.</p>
+              <p className="muted">Create, review, and open projects from a single workspace view.</p>
             </div>
+            <span className="section-badge">{visibleProjects.length} visible</span>
           </div>
 
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="toolbar controls-row">
-            <input
-              type="text"
-              placeholder="Search projects"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="recent">Newest</option>
-              <option value="name">Name</option>
-              <option value="progress">Progress</option>
-            </select>
+          <div className="dashboard-toolbar">
+            <form className="toolbar toolbar-form dashboard-create-form" onSubmit={handleCreateProject}>
+              <input
+                type="text"
+                placeholder="Enter project name"
+                value={newProjectName}
+                onChange={(event) => setNewProjectName(event.target.value)}
+                required
+              />
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Add project'}
+              </button>
+            </form>
+
+            <div className="toolbar controls-row dashboard-filters">
+              <input
+                type="text"
+                placeholder="Search projects"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <option value="recent">Newest</option>
+                <option value="name">Name</option>
+                <option value="progress">Progress</option>
+              </select>
+            </div>
           </div>
 
           {isLoading ? (
@@ -203,11 +197,21 @@ function DashboardPage() {
               {visibleProjects.map((project) => (
                 <li key={project.id} className="project-list-item">
                   <div className="project-card-main">
-                    <div>
-                      <strong>{project.name}</strong>
-                      <p className="muted">Progress: {project.progressPercentage ?? 0}%</p>
+                    <div className="project-card-content">
+                      <div className="project-card-title-row">
+                        <strong>{project.name}</strong>
+                        <span
+                          className={`status-pill ${
+                            (project.progressPercentage ?? 0) >= 100 ? 'done' : 'todo'
+                          }`}
+                        >
+                          {(project.progressPercentage ?? 0) >= 100 ? 'Completed' : 'In progress'}
+                        </span>
+                      </div>
+                      <p className="muted">Current completion: {project.progressPercentage ?? 0}%</p>
                     </div>
                     <div className="project-card-meta">
+                      <span className="project-progress-label">{project.progressPercentage ?? 0}%</span>
                       <div className="progress-track compact">
                         <span
                           className="progress-fill"

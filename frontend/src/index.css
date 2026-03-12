@@ -180,6 +180,17 @@ a {
   padding: 24px;
 }
 
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .workspace-header,
 .section-heading,
 .row {
@@ -411,8 +422,19 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.dashboard-toolbar {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
 .toolbar-form input {
   flex: 1 1 320px;
+}
+
+.dashboard-create-form,
+.dashboard-filters {
+  justify-content: space-between;
 }
 
 .task-create-form input[type='date'],
@@ -458,11 +480,32 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.project-card-content {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 280px;
+}
+
+.project-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .project-card-meta {
   display: flex;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+.project-progress-label {
+  min-width: 44px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .task-row {
@@ -652,10 +695,15 @@ button:disabled {
   .toolbar > *,
   .workspace-actions > *,
   .project-card-meta > *,
+  .project-card-title-row > *,
   .controls-row select,
   .task-create-form input[type='date'],
   .task-create-form select {
     width: 100%;
+  }
+
+  .project-progress-label {
+    text-align: left;
   }
 
   .task-meta-grid {
