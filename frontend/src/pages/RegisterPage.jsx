@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { setToken } from '../lib/authStorage'
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ function RegisterPage() {
       })
 
       setToken(response.data.token)
-      navigate('/dashboard')
+      navigate(returnUrl || '/dashboard')
     } catch (requestError) {
       setError(requestError?.response?.data?.message ?? 'Registration failed.')
     } finally {
@@ -88,7 +90,7 @@ function RegisterPage() {
           </form>
 
           <p className="helper">
-            Already registered? <Link to="/login">Sign in</Link>
+            Already registered? <Link to={`/login${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}>Sign in</Link>
           </p>
         </section>
       </section>

@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { setToken } from '../lib/authStorage'
 
 function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ function LoginPage() {
       })
 
       setToken(response.data.token)
-      navigate('/dashboard')
+      navigate(returnUrl || '/dashboard')
     } catch (requestError) {
       setError(requestError?.response?.data?.message ?? 'Login failed.')
     } finally {
@@ -87,7 +89,7 @@ function LoginPage() {
           </form>
 
           <p className="helper">
-            No account? <Link to="/register">Create one now</Link>
+            No account? <Link to={`/register${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}>Create one now</Link>
           </p>
         </section>
       </section>
