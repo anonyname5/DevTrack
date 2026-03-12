@@ -33,7 +33,23 @@ public sealed class AuthController(
             PasswordHash = passwordHasherService.Hash(request.Password)
         };
 
+        // Create default organization
+        var organization = new Organization
+        {
+            Name = $"{user.Email}'s Workspace"
+        };
+
+        var member = new OrganizationMember
+        {
+            User = user,
+            Organization = organization,
+            Role = OrganizationRole.Owner
+        };
+
         dbContext.Users.Add(user);
+        dbContext.Organizations.Add(organization);
+        dbContext.OrganizationMembers.Add(member);
+
         await dbContext.SaveChangesAsync();
 
         AuthResponse response = jwtTokenService.GenerateToken(user);
