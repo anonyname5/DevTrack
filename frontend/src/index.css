@@ -692,18 +692,63 @@ button:disabled {
     width: 100%;
   }
 
+  .workspace-header,
+  .section-heading,
+  .project-card-main {
+    align-items: flex-start;
+  }
+
   .toolbar > *,
   .workspace-actions > *,
-  .project-card-meta > *,
-  .project-card-title-row > *,
   .controls-row select,
   .task-create-form input[type='date'],
   .task-create-form select {
     width: 100%;
   }
 
+  .section-badge {
+    align-self: flex-start;
+  }
+
+  .dashboard-create-form,
+  .dashboard-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .project-list-item {
+    padding: 16px;
+  }
+
+  .project-card-title-row {
+    gap: 8px;
+  }
+
+  .project-card-title-row strong {
+    flex: 1 1 100%;
+  }
+
+  .status-pill {
+    margin-left: 0;
+  }
+
+  .project-card-meta {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px 12px;
+  }
+
   .project-progress-label {
     text-align: left;
+    min-width: 0;
+  }
+
+  .project-card-meta .link-button {
+    grid-column: 1 / -1;
+  }
+
+  .progress-track.compact {
+    width: 100%;
   }
 
   .task-meta-grid {
