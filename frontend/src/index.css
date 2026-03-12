@@ -350,7 +350,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .org-dropdown-wrapper {
@@ -390,7 +390,8 @@ button:disabled {
 .org-dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
+  left: auto;
   width: 260px;
   background: var(--surface);
   border: 1px solid var(--border);

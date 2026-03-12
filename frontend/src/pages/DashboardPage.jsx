@@ -157,6 +157,12 @@ function DashboardPage() {
       <section className="workspace-shell">
         <header className="workspace-header">
           <div>
+            <h1>Workspace dashboard</h1>
+            <p className="page-copy">
+              Review active initiatives, monitor completion trends, and manage delivery from one place.
+            </p>
+          </div>
+          <div className="workspace-actions">
             <div className="org-control-group">
               <div className="org-dropdown-wrapper">
                 <button 
@@ -208,13 +214,6 @@ function DashboardPage() {
                 )}
               </div>
             </div>
-            <h1>Workspace dashboard</h1>
-            <p className="page-copy">
-              Review active initiatives, monitor completion trends, and manage delivery from one place.
-            </p>
-          </div>
-          <div className="workspace-actions">
-            {/* Logout moved to dropdown */}
           </div>
         </header>
 
