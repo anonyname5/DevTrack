@@ -160,13 +160,12 @@ function OrganizationSettingsPage() {
             ) : (
                 <ul className="list">
                 {invitations.map(inv => (
-                    <li key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
+                    <li key={inv.id} className="org-list-item">
+                    <div className="org-list-content">
                         <strong>{inv.email}</strong>
-                        <br />
                         <span className="muted">{getRoleName(inv.role)} • Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
                     </div>
-                    <button className="ghost danger" onClick={() => handleRevoke(inv.id)} style={{ padding: '6px 12px', minHeight: 'auto' }}>Revoke</button>
+                    <button className="ghost danger btn-sm" onClick={() => handleRevoke(inv.id)}>Revoke</button>
                     </li>
                 ))}
                 </ul>
@@ -180,10 +179,9 @@ function OrganizationSettingsPage() {
           </div>
           <ul className="list">
             {members.map(member => (
-              <li key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
+              <li key={member.id} className="org-list-item">
+                <div className="org-list-content">
                   <strong>{member.email}</strong>
-                  <br />
                   <span className="muted">Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
                 </div>
                 <span className="section-badge">{getRoleName(member.role)}</span>

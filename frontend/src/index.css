@@ -988,6 +988,28 @@ button:disabled {
   }
 }
 
+.org-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.org-list-content {
+  display: grid;
+  gap: 4px;
+}
+
+.org-list-content strong {
+  word-break: break-all;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  min-height: auto;
+  font-size: 13px;
+}
+
 @media (max-width: 980px) {
   .auth-shell {
     grid-template-columns: 1fr;
@@ -1013,21 +1035,21 @@ button:disabled {
     width: 100%;
   }
 
-  .org-settings-grid .list li {
+  .org-list-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
   }
 
-  .org-settings-grid .list li > div {
+  .org-list-content {
     width: 100%;
   }
 
-  .org-settings-grid .list li button,
-  .org-settings-grid .list li .section-badge {
+  .org-list-item .btn-sm,
+  .org-list-item .section-badge {
     align-self: flex-start;
     width: 100%;
     justify-content: center;
+    margin-top: 8px;
   }
 }
 
