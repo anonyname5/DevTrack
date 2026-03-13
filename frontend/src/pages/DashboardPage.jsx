@@ -158,6 +158,7 @@ function DashboardPage() {
             <p className="page-copy">
               Review active initiatives, monitor completion trends, and manage delivery from one place.
             </p>
+            <p className="muted">Tip: Press Ctrl/Cmd + K for global search.</p>
           </div>
           <div className="workspace-actions">
             <div className="org-control-group">
