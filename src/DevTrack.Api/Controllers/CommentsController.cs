@@ -21,15 +21,18 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
 
         var task = await dbContext.Tasks
             .Include(t => t.Project)
-            .ThenInclude(p => p.Organization)
-            .ThenInclude(o => o.Members)
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null) return NotFound();
 
-        bool hasAccess = task.Project.UserId == userId || 
-                         (task.Project.Organization != null && task.Project.Organization.Members.Any(m => m.UserId == userId));
+        bool hasAccess = task.Project.UserId == userId;
+        
+        if (!hasAccess && task.Project.OrganizationId.HasValue)
+        {
+            hasAccess = await dbContext.OrganizationMembers
+                .AnyAsync(m => m.OrganizationId == task.Project.OrganizationId.Value && m.UserId == userId);
+        }
 
         if (!hasAccess) return Forbid();
 
@@ -61,14 +64,17 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
 
         var task = await dbContext.Tasks
             .Include(t => t.Project)
-            .ThenInclude(p => p.Organization)
-            .ThenInclude(o => o.Members)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null) return NotFound();
 
-        bool hasAccess = task.Project.UserId == userId || 
-                         (task.Project.Organization != null && task.Project.Organization.Members.Any(m => m.UserId == userId));
+        bool hasAccess = task.Project.UserId == userId;
+        
+        if (!hasAccess && task.Project.OrganizationId.HasValue)
+        {
+            hasAccess = await dbContext.OrganizationMembers
+                .AnyAsync(m => m.OrganizationId == task.Project.OrganizationId.Value && m.UserId == userId);
+        }
 
         if (!hasAccess) return Forbid();
 
@@ -149,8 +155,6 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
         var comment = await dbContext.Comments
             .Include(c => c.Task)
             .ThenInclude(t => t.Project)
-            .ThenInclude(p => p.Organization)
-            .ThenInclude(o => o.Members)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (comment == null) return NotFound();
@@ -161,8 +165,8 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
 
         if (comment.Task.Project.OrganizationId.HasValue)
         {
-            var member = comment.Task.Project.Organization.Members
-                .FirstOrDefault(m => m.UserId == userId);
+            var member = await dbContext.OrganizationMembers
+                .FirstOrDefaultAsync(m => m.OrganizationId == comment.Task.Project.OrganizationId.Value && m.UserId == userId);
             
             if (member != null && (member.Role == OrganizationRole.Owner || member.Role == OrganizationRole.Admin))
             {
