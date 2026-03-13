@@ -12,7 +12,7 @@ namespace DevTrack.Api.Controllers;
 [Route("api/[controller]")]
 public sealed class InvitationsController(AppDbContext dbContext) : ControllerBase
 {
-    [HttpPost]
+    [HttpPost("/api/invitations")]
     public async Task<IActionResult> InviteMember([FromBody] InviteMemberRequest request)
     {
         int userId = GetUserId();
@@ -57,7 +57,7 @@ public sealed class InvitationsController(AppDbContext dbContext) : ControllerBa
         return Ok(new { invitation.Token, invitation.ExpiresAt });
     }
 
-    [HttpPost("accept")]
+    [HttpPost("/api/invitations/accept")]
     public async Task<IActionResult> AcceptInvitation([FromBody] AcceptInvitationRequest request)
     {
         int userId = GetUserId();
@@ -103,7 +103,7 @@ public sealed class InvitationsController(AppDbContext dbContext) : ControllerBa
         return Ok(new { message = "Joined organization successfully.", organizationId = invitation.OrganizationId });
     }
 
-    [HttpGet("pending")]
+    [HttpGet("/api/invitations/pending")]
     public async Task<IActionResult> GetPendingInvitations([FromQuery] int organizationId)
     {
         int userId = GetUserId();
@@ -131,7 +131,7 @@ public sealed class InvitationsController(AppDbContext dbContext) : ControllerBa
         return Ok(invitations);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("/api/invitations/{id}")]
     public async Task<IActionResult> RevokeInvitation(int id)
     {
         int userId = GetUserId();
