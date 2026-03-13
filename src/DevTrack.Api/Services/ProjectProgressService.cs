@@ -12,7 +12,7 @@ public sealed class ProjectProgressService : IProjectProgressService
             return 0;
         }
 
-        int completedCount = taskList.Count(task => task.IsCompleted);
+        int completedCount = taskList.Count(task => task.Status == ProjectTaskStatus.Done);
         double percentage = (double)completedCount / taskList.Count * 100;
         return (int)Math.Round(percentage, MidpointRounding.AwayFromZero);
     }

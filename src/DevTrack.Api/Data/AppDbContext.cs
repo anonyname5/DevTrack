@@ -84,6 +84,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .WithMany(project => project.Tasks)
                 .HasForeignKey(task => task.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(task => task.Assignee)
+                .WithMany()
+                .HasForeignKey(task => task.AssigneeId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
