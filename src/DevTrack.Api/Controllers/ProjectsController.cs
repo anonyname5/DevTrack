@@ -12,7 +12,7 @@ namespace DevTrack.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public sealed class ProjectsController(AppDbContext dbContext, IProjectProgressService progressService) : ControllerBase
+public sealed class ProjectsController(AppDbContext dbContext, IProjectProgressService progressService, IActivityLogService activityLogService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetMyProjects([FromQuery] int? organizationId)
@@ -112,6 +112,18 @@ public sealed class ProjectsController(AppDbContext dbContext, IProjectProgressS
 
         dbContext.Projects.Add(project);
         await dbContext.SaveChangesAsync();
+
+        if (project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                project.OrganizationId.Value,
+                userId.Value,
+                "Project",
+                project.Id,
+                "Created",
+                $"Created project: {project.Name}"
+            );
+        }
 
         return CreatedAtAction(nameof(GetMyProjects), new { id = project.Id }, new
         {
@@ -215,6 +227,18 @@ public sealed class ProjectsController(AppDbContext dbContext, IProjectProgressS
 
         dbContext.Projects.Remove(project);
         await dbContext.SaveChangesAsync();
+
+        if (project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                project.OrganizationId.Value,
+                userId.Value,
+                "Project",
+                project.Id,
+                "Deleted",
+                $"Deleted project: {project.Name}"
+            );
+        }
 
         return NoContent();
     }

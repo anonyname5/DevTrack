@@ -2,6 +2,7 @@ using System.Security.Claims;
 using DevTrack.Api.Data;
 using DevTrack.Api.DTOs;
 using DevTrack.Api.Models;
+using DevTrack.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace DevTrack.Api.Controllers;
 
 [ApiController]
 [Authorize]
-public sealed class TasksController(AppDbContext dbContext) : ControllerBase
+public sealed class TasksController(AppDbContext dbContext, IActivityLogService activityLogService) : ControllerBase
 {
     [HttpGet("/api/projects/{projectId:int}/tasks")]
     public async Task<IActionResult> GetProjectTasks(int projectId)
@@ -102,6 +103,18 @@ public sealed class TasksController(AppDbContext dbContext) : ControllerBase
         dbContext.Tasks.Add(task);
         await dbContext.SaveChangesAsync();
 
+        if (project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                project.OrganizationId.Value,
+                userId.Value,
+                "Task",
+                task.Id,
+                "Created",
+                $"Created task: {task.Title}"
+            );
+        }
+
         return CreatedAtAction(nameof(GetProjectTasks), new { projectId }, new
         {
             task.Id,
@@ -153,6 +166,18 @@ public sealed class TasksController(AppDbContext dbContext) : ControllerBase
 
         await dbContext.SaveChangesAsync();
 
+        if (task.Project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                task.Project.OrganizationId.Value,
+                userId.Value,
+                "Task",
+                task.Id,
+                "Updated",
+                $"Updated task details for: {task.Title}"
+            );
+        }
+
         return Ok(new
         {
             task.Id,
@@ -198,6 +223,18 @@ public sealed class TasksController(AppDbContext dbContext) : ControllerBase
         dbContext.Tasks.Remove(task);
         await dbContext.SaveChangesAsync();
 
+        if (task.Project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                task.Project.OrganizationId.Value,
+                userId.Value,
+                "Task",
+                task.Id,
+                "Deleted",
+                $"Deleted task: {task.Title}"
+            );
+        }
+
         return NoContent();
     }
 
@@ -231,6 +268,18 @@ public sealed class TasksController(AppDbContext dbContext) : ControllerBase
 
         task.Status = request.Status;
         await dbContext.SaveChangesAsync();
+
+        if (task.Project.OrganizationId.HasValue)
+        {
+            await activityLogService.LogAsync(
+                task.Project.OrganizationId.Value,
+                userId.Value,
+                "Task",
+                task.Id,
+                "StatusChanged",
+                $"Changed status to {request.Status} for task: {task.Title}"
+            );
+        }
 
         return Ok(new
         {
