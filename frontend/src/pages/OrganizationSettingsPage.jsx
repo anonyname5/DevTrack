@@ -33,12 +33,17 @@ function OrganizationSettingsPage() {
   const loadData = useCallback(async () => {
     setError('')
     try {
-      const [membersRes, invitesRes] = await Promise.all([
-        apiClient.get(`/api/organizations/${currentOrg.id}/members`),
-        apiClient.get(`/api/invitations/pending?organizationId=${currentOrg.id}`)
-      ])
+      // Fetch members (allowed for all members)
+      const membersRes = await apiClient.get(`/api/organizations/${currentOrg.id}/members`)
       setMembers(membersRes.data)
-      setInvitations(invitesRes.data)
+
+      // Fetch invitations only if Admin or Owner (0 or 1)
+      if (currentOrg.role === 0 || currentOrg.role === 1) {
+        const invitesRes = await apiClient.get(`/api/invitations/pending?organizationId=${currentOrg.id}`)
+        setInvitations(invitesRes.data)
+      } else {
+        setInvitations([])
+      }
     } catch (err) {
       console.error(err)
       setError('Failed to load organization data.')
@@ -50,6 +55,8 @@ function OrganizationSettingsPage() {
       loadData()
     }
   }, [currentOrg, loadData])
+
+  const canManageInvites = currentOrg && (currentOrg.role === 0 || currentOrg.role === 1)
 
   async function handleInvite(e) {
     e.preventDefault()
@@ -121,57 +128,59 @@ function OrganizationSettingsPage() {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="stats-grid org-settings-grid">
-            <section className="section-card">
-            <div className="section-heading">
-                <h2>Invite Member</h2>
-            </div>
-            <form className="form" onSubmit={handleInvite}>
-                <label>
-                Email Address
-                <input 
-                    type="email" 
-                    required 
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="colleague@example.com"
-                />
-                </label>
-                <label>
-                Role
-                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
-                    <option value={1}>Admin</option>
-                    <option value={2}>Member</option>
-                    <option value={3}>Viewer</option>
-                </select>
-                </label>
-                <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send Invitation'}
-                </button>
-            </form>
-            </section>
+        {canManageInvites && (
+          <div className="stats-grid org-settings-grid">
+              <section className="section-card">
+              <div className="section-heading">
+                  <h2>Invite Member</h2>
+              </div>
+              <form className="form" onSubmit={handleInvite}>
+                  <label>
+                  Email Address
+                  <input 
+                      type="email" 
+                      required 
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="colleague@example.com"
+                  />
+                  </label>
+                  <label>
+                  Role
+                  <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
+                      <option value={1}>Admin</option>
+                      <option value={2}>Member</option>
+                      <option value={3}>Viewer</option>
+                  </select>
+                  </label>
+                  <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Sending...' : 'Send Invitation'}
+                  </button>
+              </form>
+              </section>
 
-            <section className="section-card">
-            <div className="section-heading">
-                <h2>Pending Invitations</h2>
-            </div>
-            {invitations.length === 0 ? (
-                <p className="muted">No pending invitations.</p>
-            ) : (
-                <ul className="list">
-                {invitations.map(inv => (
-                    <li key={inv.id} className="org-list-item">
-                    <div className="org-list-content">
-                        <strong>{inv.email}</strong>
-                        <span className="muted">{getRoleName(inv.role)} • Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
-                    </div>
-                    <button className="ghost danger btn-sm" onClick={() => handleRevoke(inv.id)}>Revoke</button>
-                    </li>
-                ))}
-                </ul>
-            )}
-            </section>
-        </div>
+              <section className="section-card">
+              <div className="section-heading">
+                  <h2>Pending Invitations</h2>
+              </div>
+              {invitations.length === 0 ? (
+                  <p className="muted">No pending invitations.</p>
+              ) : (
+                  <ul className="list">
+                  {invitations.map(inv => (
+                      <li key={inv.id} className="org-list-item">
+                      <div className="org-list-content">
+                          <strong>{inv.email}</strong>
+                          <span className="muted">{getRoleName(inv.role)} • Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
+                      </div>
+                      <button className="ghost danger btn-sm" onClick={() => handleRevoke(inv.id)}>Revoke</button>
+                      </li>
+                  ))}
+                  </ul>
+              )}
+              </section>
+          </div>
+        )}
 
         <section className="section-card">
           <div className="section-heading">
