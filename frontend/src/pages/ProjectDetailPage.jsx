@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import apiClient from '../lib/apiClient'
-import { clearToken } from '../lib/authStorage'
 import ConfirmModal from '../components/ConfirmModal'
 import ToastStack from '../components/ToastStack'
 import { useOrganization } from '../context/OrganizationContext'
@@ -101,7 +100,6 @@ function KanbanColumn({ status, tasks, onEdit, onDelete }) {
 }
 
 function ProjectDetailPage() {
-  const navigate = useNavigate()
   const { projectId } = useParams()
   const numericProjectId = useMemo(() => Number(projectId), [projectId])
   const { selectOrganization } = useOrganization()
@@ -170,7 +168,7 @@ function ProjectDetailPage() {
       }
       
       setTasks(tasksRes.data)
-    } catch (err) {
+    } catch {
       setError('Failed to load project data.')
     } finally {
       setIsLoading(false)

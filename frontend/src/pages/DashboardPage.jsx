@@ -50,7 +50,7 @@ function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [navigate, currentOrg])
+  }, [currentOrg])
 
   useEffect(() => {
     if (currentOrg) {
