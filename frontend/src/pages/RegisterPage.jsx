@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { setToken } from '../lib/authStorage'
 import LoadingOverlay from '../components/LoadingOverlay'
+import { useOrganization } from '../context/OrganizationContext'
 
 function RegisterPage() {
   const navigate = useNavigate()
@@ -12,6 +13,7 @@ function RegisterPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { refreshOrganizations } = useOrganization()
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -25,6 +27,7 @@ function RegisterPage() {
       })
 
       setToken(response.data.token)
+      await refreshOrganizations()
       navigate(returnUrl || '/dashboard')
     } catch (requestError) {
       setError(requestError?.response?.data?.message ?? 'Registration failed.')
