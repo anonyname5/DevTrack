@@ -85,7 +85,21 @@ function CommentsSection({ taskId }) {
                   aria-label="Delete comment"
                   onClick={() => setCommentToDeleteId(comment.id)}
                 >
-                  X
+                  <svg
+                    className="comment-delete-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M9 3h6m-9 4h12m-1 0-.6 10.2A2 2 0 0 1 14.4 19H9.6a2 2 0 0 1-2-1.8L7 7m3 4v5m4-5v5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>

@@ -1145,6 +1145,11 @@ button:disabled {
   line-height: 1;
 }
 
+.comment-delete-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .comment-delete-btn:hover {
   background: #ffe9e7;
   border-color: #e5a5a0;
