@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import apiClient from '../lib/apiClient'
 import { clearToken } from '../lib/authStorage'
 import ToastStack from '../components/ToastStack'
+import LoadingOverlay from '../components/LoadingOverlay'
 import { useOrganization } from '../context/OrganizationContext'
 
 function DashboardPage() {
@@ -16,6 +17,7 @@ function DashboardPage() {
   const [toasts, setToasts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false)
 
@@ -105,8 +107,12 @@ function DashboardPage() {
   }
 
   function handleLogout() {
-    clearToken()
-    navigate('/login')
+    setIsLoggingOut(true)
+    // Simulate a brief delay for better UX
+    setTimeout(() => {
+      clearToken()
+      navigate('/login')
+    }, 800)
   }
 
   function handleOrgSelect(orgId) {
@@ -154,6 +160,7 @@ function DashboardPage() {
 
   return (
     <main className="page workspace-page">
+      <LoadingOverlay isLoading={isLoggingOut} message="Logging out..." />
       <section className="workspace-shell">
         <header className="workspace-header">
           <div>
