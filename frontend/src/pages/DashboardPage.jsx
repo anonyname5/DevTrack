@@ -156,6 +156,10 @@ function DashboardPage() {
     return right.id - left.id
   })
 
+  function getSortIndicator(key) {
+    return sortBy === key ? ' ↓' : ''
+  }
+
   const totalProjects = projects.length
   const averageProgress =
     totalProjects === 0
@@ -423,57 +427,96 @@ function DashboardPage() {
             </div>
           </div>
 
-          {isLoading ? (
-            <ul className="list project-list">
-              {[1, 2, 3].map((skeletonId) => (
-                <li key={skeletonId} className="skeleton-item project-list-item">
-                  <span className="skeleton-line w-50" />
-                  <span className="skeleton-line w-70" />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ul className="list project-list">
-              {visibleProjects.map((project) => (
-                <li key={project.id} className="project-list-item">
-                  <div className="project-card-main">
-                    <div className="project-card-content">
-                      <div className="project-card-title-row">
-                        <strong>{project.name}</strong>
-                        <span
-                          className={`status-pill ${
-                            (project.progressPercentage ?? 0) >= 100 ? 'done' : 'todo'
-                          }`}
-                        >
-                          {(project.progressPercentage ?? 0) >= 100 ? 'Completed' : 'In progress'}
-                        </span>
-                      </div>
-                      <p className="muted">Current completion: {project.progressPercentage ?? 0}%</p>
-                    </div>
-                    <div className="project-card-meta">
-                      <span className="project-progress-label">{project.progressPercentage ?? 0}%</span>
-                      <div className="progress-track compact">
-                        <span
-                          className="progress-fill"
-                          style={{ width: `${project.progressPercentage ?? 0}%` }}
-                        />
-                      </div>
-                      <Link className="link-button" to={`/projects/${project.id}`}>
-                        Open project
-                      </Link>
-                    </div>
-                  </div>
-                </li>
-              ))}
-              {visibleProjects.length === 0 ? (
-                <li className="empty-state">
-                  {projects.length === 0
-                    ? 'No projects yet. Create your first project above.'
-                    : 'No project matches your current search or sorting criteria.'}
-                </li>
-              ) : null}
-            </ul>
-          )}
+          <div className="project-table-wrap">
+            <table className="project-table">
+              <thead>
+                <tr>
+                  <th>
+                    <button
+                      type="button"
+                      className="table-sort-btn"
+                      onClick={() => setSortBy('name')}
+                    >
+                      Project{getSortIndicator('name')}
+                    </button>
+                  </th>
+                  <th>Status</th>
+                  <th>
+                    <button
+                      type="button"
+                      className="table-sort-btn"
+                      onClick={() => setSortBy('progress')}
+                    >
+                      Progress{getSortIndicator('progress')}
+                    </button>
+                  </th>
+                  <th className="align-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading
+                  ? [1, 2, 3].map((skeletonId) => (
+                      <tr key={skeletonId}>
+                        <td>
+                          <span className="skeleton-line w-50" />
+                        </td>
+                        <td>
+                          <span className="skeleton-line w-35" />
+                        </td>
+                        <td>
+                          <span className="skeleton-line w-70" />
+                        </td>
+                        <td className="align-right">
+                          <span className="skeleton-line w-50" style={{ marginLeft: 'auto' }} />
+                        </td>
+                      </tr>
+                    ))
+                  : visibleProjects.map((project) => (
+                      <tr key={project.id}>
+                        <td>
+                          <div className="project-table-title">
+                            <strong>{project.name}</strong>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`status-pill ${
+                              (project.progressPercentage ?? 0) >= 100 ? 'done' : 'todo'
+                            }`}
+                          >
+                            {(project.progressPercentage ?? 0) >= 100 ? 'Completed' : 'In progress'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="project-table-progress">
+                            <span className="project-progress-label">{project.progressPercentage ?? 0}%</span>
+                            <div className="progress-track compact">
+                              <span
+                                className="progress-fill"
+                                style={{ width: `${project.progressPercentage ?? 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="align-right">
+                          <Link className="link-button" to={`/projects/${project.id}`}>
+                            Open
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                {!isLoading && visibleProjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="empty-state">
+                      {projects.length === 0
+                        ? 'No projects yet. Create your first project above.'
+                        : 'No project matches your current search or sorting criteria.'}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </section>
       </section>
       <ToastStack toasts={toasts} />

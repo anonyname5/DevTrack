@@ -672,6 +672,79 @@ button:disabled {
   margin-top: 20px;
 }
 
+.project-table-wrap {
+  margin-top: 18px;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.project-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.project-table th,
+.project-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.project-table th {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--surface-soft);
+}
+
+.table-sort-btn {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.table-sort-btn:hover {
+  transform: none;
+  color: var(--text);
+}
+
+.project-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.project-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.project-table-title strong {
+  font-size: 14px;
+}
+
+.project-table-progress {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.align-right {
+  text-align: right !important;
+}
+
 .project-list-item {
   padding: 18px 20px;
 }
