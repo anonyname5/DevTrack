@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import apiClient from '../lib/apiClient'
+import ConfirmModal from './ConfirmModal'
 
 function CommentsSection({ taskId }) {
   const [comments, setComments] = useState([])
@@ -7,6 +8,7 @@ function CommentsSection({ taskId }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [commentToDeleteId, setCommentToDeleteId] = useState(null)
 
   const loadComments = useCallback(async () => {
     if (!taskId) return
@@ -46,10 +48,9 @@ function CommentsSection({ taskId }) {
   }
 
   async function handleDelete(commentId) {
-    if (!confirm('Delete this comment?')) return
     try {
       await apiClient.delete(`/api/comments/${commentId}`)
-      setComments(comments.filter(c => c.id !== commentId))
+      setComments((currentComments) => currentComments.filter((c) => c.id !== commentId))
     } catch (err) {
       console.error(err)
       setError('Failed to delete comment')
@@ -76,13 +77,17 @@ function CommentsSection({ taskId }) {
               </div>
               <p className="comment-body">{comment.content}</p>
               {/* TODO: Add check if current user owns the comment */}
-              <button 
-                className="link-button danger-text" 
-                style={{ fontSize: '12px', padding: 0, minHeight: 'auto' }}
-                onClick={() => handleDelete(comment.id)}
-              >
-                Delete
-              </button>
+              <div className="comment-actions">
+                <button
+                  type="button"
+                  className="comment-delete-btn"
+                  title="Delete comment"
+                  aria-label="Delete comment"
+                  onClick={() => setCommentToDeleteId(comment.id)}
+                >
+                  X
+                </button>
+              </div>
             </div>
           ))
         )}
@@ -102,6 +107,21 @@ function CommentsSection({ taskId }) {
           {isSubmitting ? 'Posting...' : 'Post Comment'}
         </button>
       </form>
+
+      <ConfirmModal
+        isOpen={commentToDeleteId !== null}
+        title="Delete Comment?"
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          if (commentToDeleteId !== null) {
+            await handleDelete(commentToDeleteId)
+          }
+          setCommentToDeleteId(null)
+        }}
+        onCancel={() => setCommentToDeleteId(null)}
+      />
     </div>
   )
 }
