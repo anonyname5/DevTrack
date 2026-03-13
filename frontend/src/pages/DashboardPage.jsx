@@ -457,28 +457,28 @@ function DashboardPage() {
                 {isLoading
                   ? [1, 2, 3].map((skeletonId) => (
                       <tr key={skeletonId}>
-                        <td>
+                        <td data-label="Project">
                           <span className="skeleton-line w-50" />
                         </td>
-                        <td>
+                        <td data-label="Status">
                           <span className="skeleton-line w-35" />
                         </td>
-                        <td>
+                        <td data-label="Progress">
                           <span className="skeleton-line w-70" />
                         </td>
-                        <td className="align-right">
+                        <td data-label="Action" className="align-right">
                           <span className="skeleton-line w-50" style={{ marginLeft: 'auto' }} />
                         </td>
                       </tr>
                     ))
                   : visibleProjects.map((project) => (
                       <tr key={project.id}>
-                        <td>
+                        <td data-label="Project">
                           <div className="project-table-title">
                             <strong>{project.name}</strong>
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Status">
                           <span
                             className={`status-pill ${
                               (project.progressPercentage ?? 0) >= 100 ? 'done' : 'todo'
@@ -487,7 +487,7 @@ function DashboardPage() {
                             {(project.progressPercentage ?? 0) >= 100 ? 'Completed' : 'In progress'}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Progress">
                           <div className="project-table-progress">
                             <span className="project-progress-label">{project.progressPercentage ?? 0}%</span>
                             <div className="progress-track compact">
@@ -498,7 +498,7 @@ function DashboardPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="align-right">
+                        <td data-label="Action" className="align-right">
                           <Link className="link-button" to={`/projects/${project.id}`}>
                             Open
                           </Link>

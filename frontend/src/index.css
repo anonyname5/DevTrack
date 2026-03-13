@@ -745,6 +745,67 @@ button:disabled {
   text-align: right !important;
 }
 
+@media (max-width: 780px) {
+  .project-table {
+    min-width: 0;
+  }
+
+  .project-table thead {
+    display: none;
+  }
+
+  .project-table tbody tr {
+    display: block;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+  }
+
+  .project-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .project-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: none;
+    padding: 8px 12px;
+  }
+
+  .project-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .project-table td.align-right {
+    text-align: left !important;
+  }
+
+  .project-table td.align-right .link-button {
+    margin-left: 0 !important;
+  }
+
+  .project-table-progress {
+    width: 100%;
+    grid-template-columns: auto minmax(90px, 1fr);
+  }
+
+  .project-table td.empty-state {
+    display: block;
+    text-align: center !important;
+  }
+
+  .project-table td.empty-state::before {
+    content: none;
+  }
+}
+
 .project-list-item {
   padding: 18px 20px;
 }
