@@ -8,6 +8,8 @@ import ConfirmModal from '../components/ConfirmModal'
 import ToastStack from '../components/ToastStack'
 import { useOrganization } from '../context/OrganizationContext'
 
+import TaskDetailModal from '../components/TaskDetailModal'
+
 const TASK_STATUSES = {
   0: { id: 0, label: 'Backlog', color: 'var(--text-soft)' },
   1: { id: 1, label: 'To Do', color: 'var(--warning-text)' },
@@ -207,18 +209,15 @@ function ProjectDetailPage() {
     }
   }
 
-  async function handleUpdateTask(e) {
-    e.preventDefault()
-    if (!editingTask) return
-
+  async function handleUpdateTask(updatedTask) {
     try {
-      await apiClient.put(`/api/tasks/${editingTask.id}`, {
-        title: editingTask.title,
-        description: editingTask.description,
-        priority: parseInt(editingTask.priority),
-        status: parseInt(editingTask.status),
-        dueDate: editingTask.dueDate || null,
-        assigneeId: editingTask.assigneeId ? parseInt(editingTask.assigneeId) : null
+      await apiClient.put(`/api/tasks/${updatedTask.id}`, {
+        title: updatedTask.title,
+        description: updatedTask.description,
+        priority: parseInt(updatedTask.priority),
+        status: parseInt(updatedTask.status),
+        dueDate: updatedTask.dueDate || null,
+        assigneeId: updatedTask.assigneeId ? parseInt(updatedTask.assigneeId) : null
       })
       
       setEditingTask(null)
@@ -405,80 +404,12 @@ function ProjectDetailPage() {
       </DndContext>
 
       {editingTask && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <h2>Edit Task</h2>
-            <form onSubmit={handleUpdateTask} className="form">
-              <label>
-                Title
-                <input 
-                  value={editingTask.title} 
-                  onChange={e => setEditingTask({...editingTask, title: e.target.value})} 
-                  required 
-                />
-              </label>
-              <label>
-                Description
-                <textarea 
-                  value={editingTask.description || ''} 
-                  onChange={e => setEditingTask({...editingTask, description: e.target.value})}
-                  rows={3}
-                  style={{ width: '100%', padding: '10px', borderRadius: '14px', border: '1px solid var(--border)' }}
-                />
-              </label>
-              <div className="row">
-                <label>
-                  Status
-                  <select 
-                    value={editingTask.status} 
-                    onChange={e => setEditingTask({...editingTask, status: e.target.value})}
-                  >
-                    {Object.values(TASK_STATUSES).map(s => (
-                      <option key={s.id} value={s.id}>{s.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Priority
-                  <select 
-                    value={editingTask.priority} 
-                    onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
-                  >
-                    {Object.values(TASK_PRIORITIES).map(p => (
-                      <option key={p.id} value={p.id}>{p.label}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="row">
-                 <label>
-                  Due Date
-                  <input 
-                    type="date" 
-                    value={editingTask.dueDate ? editingTask.dueDate.split('T')[0] : ''} 
-                    onChange={e => setEditingTask({...editingTask, dueDate: e.target.value})} 
-                  />
-                </label>
-                <label>
-                  Assignee
-                  <select 
-                    value={editingTask.assigneeId || ''} 
-                    onChange={e => setEditingTask({...editingTask, assigneeId: e.target.value})}
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map(m => (
-                      <option key={m.id} value={m.id}>{m.email}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="row" style={{ marginTop: '16px' }}>
-                <button type="button" className="ghost" onClick={() => setEditingTask(null)}>Cancel</button>
-                <button type="submit">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <TaskDetailModal 
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onUpdate={handleUpdateTask}
+          members={members}
+        />
       )}
 
       <ConfirmModal

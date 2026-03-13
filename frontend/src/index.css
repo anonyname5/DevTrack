@@ -1053,105 +1053,98 @@ button:disabled {
   }
 }
 
-@media (max-width: 720px) {
-  .page {
-    padding: 20px 16px;
-  }
+/* Task Detail Modal Styles */
+.task-detail-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  .card,
-  .section-card,
-  .auth-aside,
-  .stat-card,
-  .kanban-column {
-    padding: 20px;
-    border-radius: 18px;
-  }
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
-  .toolbar,
-  .project-card-main,
-  .project-card-meta {
-    width: 100%;
-  }
+.tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
 
-  .workspace-header {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    gap: 12px;
-  }
+.tab {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-soft);
+  border-bottom: 2px solid transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
 
-  .workspace-header > div:first-child {
-    flex: 1;
-    min-width: 0;
-  }
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
 
-  .workspace-actions {
-    width: auto;
-    flex-shrink: 0;
-    margin-left: 0;
-  }
-  .controls-row select,
-  .task-create-form input[type='date'],
-  .task-create-form select {
-    width: 100%;
-  }
+.modal-content {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px; /* For scrollbar */
+}
 
-  .section-badge {
-    align-self: flex-start;
-  }
+/* Comments & Activity Styles */
+.comment-item,
+.activity-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
 
-  .dashboard-create-form,
-  .dashboard-filters {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
+.comment-item:last-child,
+.activity-item:last-child {
+  border-bottom: none;
+}
 
-  .project-list-item {
-    padding: 16px;
-  }
+.comment-header,
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
 
-  .project-card-title-row {
-    gap: 8px;
-  }
+.comment-body {
+  margin: 0;
+  font-size: 14px;
+}
 
-  .project-card-title-row strong {
-    flex: 1 1 100%;
-  }
+.activity-details {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--text);
+}
 
-  .status-pill {
-    margin-left: 0;
-  }
+.activity-time {
+  font-size: 11px;
+  color: var(--text-faint);
+}
 
-  .project-card-meta {
-    display: grid;
-    grid-template-columns: 52px minmax(0, 1fr);
-    gap: 10px 12px;
-  }
+.comment-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
 
-  .project-progress-label {
-    text-align: left;
-    min-width: 0;
-  }
-
-  .project-card-meta .link-button {
-    grid-column: 1 / -1;
-  }
-
-  .progress-track.compact {
-    width: 100%;
-  }
-
-  .task-meta-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .toast-stack {
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-  }
-
-  .toast {
-    max-width: 100%;
-  }
+.comment-form textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  resize: vertical;
 }
