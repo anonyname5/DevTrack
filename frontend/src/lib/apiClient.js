@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getToken } from './authStorage'
+import { getToken, clearToken } from './authStorage'
 
 const defaultBaseUrl = import.meta.env.DEV ? 'http://localhost:5072' : ''
 
@@ -17,5 +17,18 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      clearToken()
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+        window.location.href = `/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export default apiClient

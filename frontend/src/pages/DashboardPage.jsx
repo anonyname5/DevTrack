@@ -46,11 +46,6 @@ function DashboardPage() {
         setError('Unexpected projects response format.')
       }
     } catch (requestError) {
-      if (requestError?.response?.status === 401) {
-        clearToken()
-        navigate('/login')
-        return
-      }
       setError(requestError?.response?.data?.message ?? 'Failed to load projects.')
     } finally {
       setIsLoading(false)
@@ -81,11 +76,6 @@ function DashboardPage() {
       await loadProjects()
       showToast('Project created successfully.')
     } catch (requestError) {
-      if (requestError?.response?.status === 401) {
-        clearToken()
-        navigate('/login')
-        return
-      }
       setError(requestError?.response?.data?.message ?? 'Failed to create project.')
       showToast('Unable to create project.', 'error')
     } finally {

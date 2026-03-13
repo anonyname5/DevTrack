@@ -144,11 +144,6 @@ function ProjectDetailPage() {
     }, 3000)
   }
 
-  const handleUnauthorized = useCallback(() => {
-    clearToken()
-    navigate('/login')
-  }, [navigate])
-
   const loadData = useCallback(async () => {
     if (!Number.isFinite(numericProjectId)) return
 
@@ -176,15 +171,11 @@ function ProjectDetailPage() {
       
       setTasks(tasksRes.data)
     } catch (err) {
-      if (err?.response?.status === 401) {
-        handleUnauthorized()
-      } else {
-        setError('Failed to load project data.')
-      }
+      setError('Failed to load project data.')
     } finally {
       setIsLoading(false)
     }
-  }, [numericProjectId, handleUnauthorized, selectOrganization])
+  }, [numericProjectId, selectOrganization])
 
   useEffect(() => {
     loadData()
