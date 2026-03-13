@@ -1012,6 +1012,23 @@ button:disabled {
   .org-settings-grid form button {
     width: 100%;
   }
+
+  .org-settings-grid .list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .org-settings-grid .list li > div {
+    width: 100%;
+  }
+
+  .org-settings-grid .list li button,
+  .org-settings-grid .list li .section-badge {
+    align-self: flex-start;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 720px) {
