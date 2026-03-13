@@ -13,6 +13,54 @@ namespace DevTrack.Api.Controllers;
 [Authorize]
 public sealed class TasksController(AppDbContext dbContext, IActivityLogService activityLogService) : ControllerBase
 {
+    [HttpGet("/api/tasks/my")]
+    public async Task<IActionResult> GetMyTasks([FromQuery] int? organizationId)
+    {
+        int? userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        IQueryable<OrganizationMember> membershipQuery = dbContext.OrganizationMembers
+            .Where(member => member.UserId == userId.Value);
+
+        if (organizationId.HasValue)
+        {
+            membershipQuery = membershipQuery.Where(member => member.OrganizationId == organizationId.Value);
+        }
+
+        List<int> memberIds = await membershipQuery
+            .Select(member => member.Id)
+            .ToListAsync();
+
+        if (memberIds.Count == 0)
+        {
+            return Ok(Array.Empty<object>());
+        }
+
+        var tasks = await dbContext.Tasks
+            .AsNoTracking()
+            .Include(task => task.Project)
+            .Where(task => task.AssigneeId.HasValue && memberIds.Contains(task.AssigneeId.Value))
+            .OrderBy(task => task.Status)
+            .ThenBy(task => task.DueDate ?? DateTime.MaxValue)
+            .Take(25)
+            .Select(task => new
+            {
+                task.Id,
+                task.Title,
+                task.Status,
+                task.Priority,
+                task.DueDate,
+                task.ProjectId,
+                ProjectName = task.Project != null ? task.Project.Name : "Project"
+            })
+            .ToListAsync();
+
+        return Ok(tasks);
+    }
+
     [HttpGet("/api/projects/{projectId:int}/tasks")]
     public async Task<IActionResult> GetProjectTasks(int projectId)
     {

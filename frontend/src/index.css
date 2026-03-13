@@ -602,6 +602,36 @@ button:disabled {
   margin-top: 18px;
 }
 
+.task-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+
+.task-filter-btn {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-soft);
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.task-filter-btn:hover {
+  transform: none;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.task-filter-btn.active {
+  background: var(--primary-soft);
+  border-color: #bfd0ff;
+  color: var(--primary);
+}
+
 .toolbar-form input {
   flex: 1 1 320px;
 }

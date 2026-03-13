@@ -7,12 +7,22 @@ import LoadingOverlay from '../components/LoadingOverlay'
 import { useOrganization } from '../context/OrganizationContext'
 
 function DashboardPage() {
+  const TASK_STATUS_LABELS = {
+    0: 'Backlog',
+    1: 'To Do',
+    2: 'In Progress',
+    3: 'Review',
+    4: 'Done',
+  }
+
   const navigate = useNavigate()
   const { currentOrg, organizations, selectOrganization, createOrganization, loading: orgLoading } = useOrganization()
   const [projects, setProjects] = useState([])
+  const [myTasks, setMyTasks] = useState([])
   const [newProjectName, setNewProjectName] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('recent')
+  const [myTaskFilter, setMyTaskFilter] = useState('all')
   const [error, setError] = useState('')
   const [toasts, setToasts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -52,13 +62,27 @@ function DashboardPage() {
     }
   }, [currentOrg])
 
+  const loadMyTasks = useCallback(async () => {
+    if (!currentOrg) return
+
+    try {
+      const response = await apiClient.get('/api/tasks/my', {
+        params: { organizationId: currentOrg.id },
+      })
+      setMyTasks(Array.isArray(response.data) ? response.data : [])
+    } catch {
+      setMyTasks([])
+    }
+  }, [currentOrg])
+
   useEffect(() => {
     if (currentOrg) {
       loadProjects()
+      loadMyTasks()
     } else if (!orgLoading && organizations.length === 0) {
         setIsLoading(false) // No orgs, stop loading
     }
-  }, [loadProjects, currentOrg, orgLoading, organizations.length])
+  }, [loadProjects, loadMyTasks, currentOrg, orgLoading, organizations.length])
 
   async function handleCreateProject(event) {
     event.preventDefault()
@@ -143,6 +167,36 @@ function DashboardPage() {
   const completedProjects = projects.filter(
     (project) => (project.progressPercentage ?? 0) >= 100,
   ).length
+
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const endOfToday = new Date(startOfToday)
+  endOfToday.setDate(endOfToday.getDate() + 1)
+
+  const isTaskOverdue = (task) => {
+    if (!task.dueDate || task.status === 4) return false
+    return new Date(task.dueDate) < startOfToday
+  }
+
+  const isTaskDueToday = (task) => {
+    if (!task.dueDate || task.status === 4) return false
+    const dueDate = new Date(task.dueDate)
+    return dueDate >= startOfToday && dueDate < endOfToday
+  }
+
+  const overdueMyTasks = myTasks.filter(isTaskOverdue).length
+
+  const dueTodayMyTasks = myTasks.filter(isTaskDueToday).length
+
+  const doneMyTasks = myTasks.filter((task) => task.status === 4).length
+
+  const filteredMyTasks = myTasks.filter((task) => {
+    if (myTaskFilter === 'overdue') return isTaskOverdue(task)
+    if (myTaskFilter === 'today') return isTaskDueToday(task)
+    if (myTaskFilter === 'done') return task.status === 4
+    return true
+  })
 
   if (orgLoading) {
       return <div className="page workspace-page">Loading workspace...</div>
@@ -237,6 +291,96 @@ function DashboardPage() {
             <strong>{completedProjects}</strong>
             <span className="stat-footnote">Projects delivered to 100% completion</span>
           </article>
+        </section>
+
+        <section className="section-card">
+          <div className="section-heading">
+            <div>
+              <h2>My Tasks</h2>
+              <p className="muted">Tasks assigned to you in this workspace.</p>
+            </div>
+            <span className="section-badge">{myTasks.length} assigned</span>
+          </div>
+
+          <div className="stats-grid" style={{ marginTop: '12px', marginBottom: '14px' }}>
+            <article className="stat-card">
+              <p>Overdue</p>
+              <strong>{overdueMyTasks}</strong>
+              <span className="stat-footnote">Past due and not done</span>
+            </article>
+            <article className="stat-card">
+              <p>Due Today</p>
+              <strong>{dueTodayMyTasks}</strong>
+              <span className="stat-footnote">Action needed today</span>
+            </article>
+            <article className="stat-card">
+              <p>Done</p>
+              <strong>{doneMyTasks}</strong>
+              <span className="stat-footnote">Completed assigned tasks</span>
+            </article>
+          </div>
+
+          <div className="task-filter-row">
+            <button
+              type="button"
+              className={`task-filter-btn ${myTaskFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setMyTaskFilter('all')}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className={`task-filter-btn ${myTaskFilter === 'overdue' ? 'active' : ''}`}
+              onClick={() => setMyTaskFilter('overdue')}
+            >
+              Overdue
+            </button>
+            <button
+              type="button"
+              className={`task-filter-btn ${myTaskFilter === 'today' ? 'active' : ''}`}
+              onClick={() => setMyTaskFilter('today')}
+            >
+              Due Today
+            </button>
+            <button
+              type="button"
+              className={`task-filter-btn ${myTaskFilter === 'done' ? 'active' : ''}`}
+              onClick={() => setMyTaskFilter('done')}
+            >
+              Done
+            </button>
+          </div>
+
+          <ul className="list project-list">
+            {filteredMyTasks.map((task) => (
+              <li key={task.id} className="project-list-item">
+                <div className="project-card-main">
+                  <div className="project-card-content">
+                    <div className="project-card-title-row">
+                      <strong>{task.title}</strong>
+                      <span className="status-pill todo">{TASK_STATUS_LABELS[task.status] ?? 'To Do'}</span>
+                    </div>
+                    <p className="muted">
+                      {task.projectName}
+                      {task.dueDate ? ` • Due ${new Date(task.dueDate).toLocaleDateString()}` : ''}
+                    </p>
+                  </div>
+                  <div className="project-card-meta">
+                    <Link className="link-button" to={`/projects/${task.projectId}`}>
+                      Open project
+                    </Link>
+                  </div>
+                </div>
+              </li>
+            ))}
+            {filteredMyTasks.length === 0 ? (
+              <li className="empty-state">
+                {myTasks.length === 0
+                  ? 'No assigned tasks in this organization yet.'
+                  : 'No assigned tasks match the selected filter.'}
+              </li>
+            ) : null}
+          </ul>
         </section>
 
         <section className="section-card">
