@@ -1002,6 +1002,16 @@ button:disabled {
   .kanban-grid {
     grid-template-columns: 1fr;
   }
+
+  .org-settings-grid .section-card {
+    width: 100%;
+  }
+
+  .org-settings-grid form input,
+  .org-settings-grid form select,
+  .org-settings-grid form button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 720px) {
