@@ -4,6 +4,7 @@ import apiClient from '../lib/apiClient'
 import { useOrganization } from '../context/OrganizationContext'
 import ToastStack from '../components/ToastStack'
 import CopyLinkModal from '../components/CopyLinkModal'
+import ConfirmModal from '../components/ConfirmModal'
 
 function OrganizationSettingsPage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ function OrganizationSettingsPage() {
   const [inviteRole, setInviteRole] = useState(2) // Default to Member (2)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeletingOrg, setIsDeletingOrg] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [toasts, setToasts] = useState([])
   const [error, setError] = useState('')
   const [modalState, setModalState] = useState({
@@ -105,9 +107,6 @@ function OrganizationSettingsPage() {
 
   async function handleDeleteOrganization() {
     if (!currentOrg) return
-    const confirmed = window.confirm(`Delete "${currentOrg.name}" organization? This action cannot be undone.`)
-    if (!confirmed) return
-
     setIsDeletingOrg(true)
     try {
       await apiClient.delete(`/api/organizations/${currentOrg.id}`)
@@ -119,6 +118,7 @@ function OrganizationSettingsPage() {
       showToast(err.response?.data?.message || 'Failed to delete organization.', 'error')
     } finally {
       setIsDeletingOrg(false)
+      setIsDeleteModalOpen(false)
     }
   }
 
@@ -234,7 +234,7 @@ function OrganizationSettingsPage() {
               <button
                 type="button"
                 className="danger"
-                onClick={handleDeleteOrganization}
+                onClick={() => setIsDeleteModalOpen(true)}
                 disabled={isDeletingOrg || !canDeleteCurrentOrg}
               >
                 {isDeletingOrg ? 'Deleting...' : 'Delete Organization'}
@@ -244,6 +244,17 @@ function OrganizationSettingsPage() {
         ) : null}
       </section>
       <ToastStack toasts={toasts} />
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Organization?"
+        message={`"${currentOrg.name}" will be permanently deleted, including projects, tasks, and memberships.`}
+        confirmLabel={isDeletingOrg ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteOrganization}
+        onCancel={() => {
+          if (!isDeletingOrg) setIsDeleteModalOpen(false)
+        }}
+      />
       <CopyLinkModal 
         isOpen={modalState.isOpen}
         onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
