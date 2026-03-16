@@ -12,6 +12,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<CommentMention> CommentMentions => Set<CommentMention>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -108,6 +110,47 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(c => c.User)
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(a => a.ContentType).HasMaxLength(180).IsRequired();
+            entity.Property(a => a.StoragePath).HasMaxLength(400).IsRequired();
+            entity.HasIndex(a => a.TaskId);
+            entity.HasIndex(a => a.CommentId);
+
+            entity.HasOne(a => a.Task)
+                .WithMany(t => t.Attachments)
+                .HasForeignKey(a => a.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.Comment)
+                .WithMany(c => c.Attachments)
+                .HasForeignKey(a => a.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CommentMention>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.HasIndex(m => new { m.CommentId, m.MentionedUserId }).IsUnique();
+
+            entity.HasOne(m => m.Comment)
+                .WithMany(c => c.Mentions)
+                .HasForeignKey(m => m.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.MentionedUser)
+                .WithMany()
+                .HasForeignKey(m => m.MentionedUserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

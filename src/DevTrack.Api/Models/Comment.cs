@@ -13,4 +13,6 @@ public sealed class Comment
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public List<Attachment> Attachments { get; set; } = [];
+    public List<CommentMention> Mentions { get; set; } = [];
 }

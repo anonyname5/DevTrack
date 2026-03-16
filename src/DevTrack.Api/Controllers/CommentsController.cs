@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using DevTrack.Api.Data;
 using DevTrack.Api.DTOs;
 using DevTrack.Api.Models;
@@ -16,6 +17,10 @@ public sealed class CommentsController(
     IActivityLogService activityLogService,
     INotificationService notificationService) : ControllerBase
 {
+    private static readonly Regex MentionRegex = new(
+        @"(?<!\w)@([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})",
+        RegexOptions.Compiled);
+
     [HttpGet("/api/tasks/{taskId:int}/comments")]
     public async Task<IActionResult> GetTaskComments(int taskId)
     {
@@ -42,6 +47,8 @@ public sealed class CommentsController(
         var comments = await dbContext.Comments
             .AsNoTracking()
             .Include(c => c.User)
+            .Include(c => c.Attachments)
+            .ThenInclude(a => a.UploadedByUser)
             .Where(c => c.TaskId == taskId)
             .OrderBy(c => c.CreatedAt)
             .Select(c => new CommentResponse
@@ -52,7 +59,20 @@ public sealed class CommentsController(
                 UserId = c.UserId,
                 UserEmail = c.User.Email,
                 CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt
+                UpdatedAt = c.UpdatedAt,
+                Attachments = c.Attachments
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Select(a => new AttachmentResponse
+                    {
+                        Id = a.Id,
+                        FileName = a.FileName,
+                        ContentType = a.ContentType,
+                        SizeBytes = a.SizeBytes,
+                        CreatedAt = a.CreatedAt,
+                        UploadedByUserId = a.UploadedByUserId,
+                        UploadedByEmail = a.UploadedByUser != null ? a.UploadedByUser.Email : "Unknown"
+                    })
+                    .ToList()
             })
             .ToListAsync();
 
@@ -106,6 +126,43 @@ public sealed class CommentsController(
             );
 
             HashSet<int> recipients = [];
+            HashSet<int> mentionRecipients = [];
+
+            if (task.Project.OrganizationId.HasValue)
+            {
+                List<string> mentionEmails = ExtractMentionEmails(request.Content);
+                if (mentionEmails.Count > 0)
+                {
+                    List<int> mentionedUserIds = await dbContext.OrganizationMembers
+                        .AsNoTracking()
+                        .Where(m =>
+                            m.OrganizationId == task.Project.OrganizationId.Value &&
+                            mentionEmails.Contains(m.User!.Email.ToLower()))
+                        .Select(m => m.UserId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    foreach (int mentionedUserId in mentionedUserIds)
+                    {
+                        if (mentionedUserId == userId.Value)
+                        {
+                            continue;
+                        }
+
+                        mentionRecipients.Add(mentionedUserId);
+                        dbContext.CommentMentions.Add(new CommentMention
+                        {
+                            CommentId = comment.Id,
+                            MentionedUserId = mentionedUserId
+                        });
+                    }
+
+                    if (mentionRecipients.Count > 0)
+                    {
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+            }
 
             if (task.AssigneeId.HasValue)
             {
@@ -126,8 +183,23 @@ public sealed class CommentsController(
             }
 
             string actorName = user?.Email ?? "Someone";
+            foreach (int mentionedUserId in mentionRecipients)
+            {
+                await notificationService.CreateAsync(
+                    mentionedUserId,
+                    "You were mentioned",
+                    $"{actorName} mentioned you in task: {task.Title}",
+                    task.Project.OrganizationId,
+                    $"/projects/{task.ProjectId}");
+            }
+
             foreach (int recipientUserId in recipients)
             {
+                if (mentionRecipients.Contains(recipientUserId))
+                {
+                    continue;
+                }
+
                 await notificationService.CreateAsync(
                     recipientUserId,
                     "New task comment",
@@ -145,7 +217,8 @@ public sealed class CommentsController(
             TaskId = comment.TaskId,
             UserId = comment.UserId,
             UserEmail = user?.Email ?? "Unknown",
-            CreatedAt = comment.CreatedAt
+            CreatedAt = comment.CreatedAt,
+            Attachments = []
         });
     }
 
@@ -220,5 +293,14 @@ public sealed class CommentsController(
     {
         string? claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(claimValue, out int userId) ? userId : null;
+    }
+
+    private static List<string> ExtractMentionEmails(string content)
+    {
+        return MentionRegex.Matches(content)
+            .Select(match => match.Groups[1].Value.Trim().ToLowerInvariant())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct()
+            .ToList();
     }
 }

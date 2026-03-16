@@ -9,4 +9,5 @@ public sealed class CommentResponse
     public string UserEmail { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public List<AttachmentResponse> Attachments { get; set; } = [];
 }
