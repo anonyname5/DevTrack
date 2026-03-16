@@ -75,10 +75,14 @@ function CommentsSection({ taskId, members = [] }) {
   const mentionSuggestions = useMemo(() => {
     if (!mentionQuery.trim()) return []
     const normalizedQuery = mentionQuery.trim().toLowerCase()
+    const mentionedEmails = new Set(extractMentionEmails(newComment))
     return members
-      .filter((member) => member.email?.toLowerCase().includes(normalizedQuery))
+      .filter((member) => {
+        const email = member.email?.toLowerCase()
+        return email?.includes(normalizedQuery) && !mentionedEmails.has(email)
+      })
       .slice(0, 6)
-  }, [mentionQuery, members])
+  }, [mentionQuery, members, newComment])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -150,6 +154,13 @@ function CommentsSection({ taskId, members = [] }) {
   }
 
   function insertMention(email) {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (extractMentionEmails(newComment).includes(normalizedEmail)) {
+      setMentionQuery('')
+      setIsMentionOpen(false)
+      return
+    }
+
     const input = commentInputRef.current
     if (!input) {
       const mentionText = `@${email}`
@@ -210,6 +221,16 @@ function CommentsSection({ taskId, members = [] }) {
 
     setMentionQuery(mentionMatch[2] || '')
     setIsMentionOpen(true)
+  }
+
+  function extractMentionEmails(content) {
+    const mentionPattern = /@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g
+    const matches = content.matchAll(mentionPattern)
+    const uniqueEmails = new Set()
+    for (const match of matches) {
+      uniqueEmails.add((match[1] || '').toLowerCase())
+    }
+    return Array.from(uniqueEmails)
   }
 
   function formatSize(bytes) {
@@ -314,6 +335,7 @@ function CommentsSection({ taskId, members = [] }) {
                 type="button"
                 className="mention-chip"
                 onClick={() => insertMention(member.email)}
+                disabled={extractMentionEmails(newComment).includes((member.email || '').toLowerCase())}
               >
                 @{member.email}
               </button>
