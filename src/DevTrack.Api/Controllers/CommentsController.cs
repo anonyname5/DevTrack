@@ -11,7 +11,10 @@ namespace DevTrack.Api.Controllers;
 
 [ApiController]
 [Authorize]
-public sealed class CommentsController(AppDbContext dbContext, IActivityLogService activityLogService) : ControllerBase
+public sealed class CommentsController(
+    AppDbContext dbContext,
+    IActivityLogService activityLogService,
+    INotificationService notificationService) : ControllerBase
 {
     [HttpGet("/api/tasks/{taskId:int}/comments")]
     public async Task<IActionResult> GetTaskComments(int taskId)
@@ -89,6 +92,8 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
         dbContext.Comments.Add(comment);
         await dbContext.SaveChangesAsync();
 
+        var user = await dbContext.Users.FindAsync(userId.Value);
+
         if (task.Project.OrganizationId.HasValue)
         {
             await activityLogService.LogAsync(
@@ -99,11 +104,40 @@ public sealed class CommentsController(AppDbContext dbContext, IActivityLogServi
                 "Commented",
                 $"Added a comment: {request.Content.Substring(0, Math.Min(request.Content.Length, 50))}..."
             );
+
+            HashSet<int> recipients = [];
+
+            if (task.AssigneeId.HasValue)
+            {
+                int? assigneeUserId = await dbContext.OrganizationMembers
+                    .Where(m => m.Id == task.AssigneeId.Value && m.OrganizationId == task.Project.OrganizationId.Value)
+                    .Select(m => (int?)m.UserId)
+                    .SingleOrDefaultAsync();
+
+                if (assigneeUserId.HasValue && assigneeUserId.Value != userId.Value)
+                {
+                    recipients.Add(assigneeUserId.Value);
+                }
+            }
+
+            if (task.Project.UserId != userId.Value)
+            {
+                recipients.Add(task.Project.UserId);
+            }
+
+            string actorName = user?.Email ?? "Someone";
+            foreach (int recipientUserId in recipients)
+            {
+                await notificationService.CreateAsync(
+                    recipientUserId,
+                    "New task comment",
+                    $"{actorName} commented on task: {task.Title}",
+                    task.Project.OrganizationId,
+                    $"/projects/{task.ProjectId}");
+            }
         }
 
         // Return the full response object
-        var user = await dbContext.Users.FindAsync(userId.Value);
-        
         return CreatedAtAction(nameof(GetTaskComments), new { taskId }, new CommentResponse
         {
             Id = comment.Id,

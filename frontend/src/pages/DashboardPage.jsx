@@ -28,6 +28,7 @@ function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false)
 
@@ -75,14 +76,38 @@ function DashboardPage() {
     }
   }, [currentOrg])
 
+  const loadUnreadNotificationCount = useCallback(async () => {
+    if (!currentOrg) return
+
+    try {
+      const response = await apiClient.get('/api/notifications/unread-count', {
+        params: { organizationId: currentOrg.id },
+      })
+      setUnreadNotificationCount(response.data?.count ?? 0)
+    } catch {
+      setUnreadNotificationCount(0)
+    }
+  }, [currentOrg])
+
   useEffect(() => {
     if (currentOrg) {
       loadProjects()
       loadMyTasks()
+      loadUnreadNotificationCount()
     } else if (!orgLoading && organizations.length === 0) {
         setIsLoading(false) // No orgs, stop loading
     }
-  }, [loadProjects, loadMyTasks, currentOrg, orgLoading, organizations.length])
+  }, [loadProjects, loadMyTasks, loadUnreadNotificationCount, currentOrg, orgLoading, organizations.length])
+
+  useEffect(() => {
+    if (!currentOrg) return undefined
+
+    const intervalId = window.setInterval(() => {
+      loadUnreadNotificationCount()
+    }, 20000)
+
+    return () => window.clearInterval(intervalId)
+  }, [currentOrg, loadUnreadNotificationCount])
 
   async function handleCreateProject(event) {
     event.preventDefault()
@@ -220,6 +245,19 @@ function DashboardPage() {
           </div>
           <div className="workspace-actions">
             <div className="org-control-group">
+              <button
+                type="button"
+                className="notification-bell-btn"
+                title="Notifications"
+                onClick={() => navigate('/notifications')}
+              >
+                🔔
+                {unreadNotificationCount > 0 ? (
+                  <span className="notification-badge">
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                ) : null}
+              </button>
               <div className="org-dropdown-wrapper">
                 <button 
                   className="org-avatar-btn" 

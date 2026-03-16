@@ -367,6 +367,44 @@ button:disabled {
   position: relative;
 }
 
+.notification-bell-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+  padding: 0;
+  margin-right: 10px;
+}
+
+.notification-bell-btn:hover {
+  transform: none;
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .org-avatar-btn {
   width: 48px;
   height: 48px;
@@ -1344,6 +1382,15 @@ button:disabled {
   border-radius: 12px;
   border: 1px solid var(--border);
   resize: vertical;
+}
+
+.notification-item.unread {
+  border-color: #d5e2ff !important;
+  background: #f8fbff !important;
+}
+
+.notification-item.read {
+  opacity: 0.95;
 }
 
 .global-search-overlay {

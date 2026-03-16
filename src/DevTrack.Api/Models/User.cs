@@ -8,4 +8,5 @@ public sealed class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<Project> Projects { get; set; } = [];
     public List<OrganizationMember> OrganizationMembers { get; set; } = [];
+    public List<Notification> Notifications { get; set; } = [];
 }

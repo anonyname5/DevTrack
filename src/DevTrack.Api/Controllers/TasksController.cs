@@ -11,7 +11,10 @@ namespace DevTrack.Api.Controllers;
 
 [ApiController]
 [Authorize]
-public sealed class TasksController(AppDbContext dbContext, IActivityLogService activityLogService) : ControllerBase
+public sealed class TasksController(
+    AppDbContext dbContext,
+    IActivityLogService activityLogService,
+    INotificationService notificationService) : ControllerBase
 {
     [HttpGet("/api/tasks/my")]
     public async Task<IActionResult> GetMyTasks([FromQuery] int? organizationId)
@@ -161,6 +164,24 @@ public sealed class TasksController(AppDbContext dbContext, IActivityLogService 
                 "Created",
                 $"Created task: {task.Title}"
             );
+
+            if (task.AssigneeId.HasValue)
+            {
+                int? assigneeUserId = await dbContext.OrganizationMembers
+                    .Where(m => m.Id == task.AssigneeId.Value && m.OrganizationId == project.OrganizationId.Value)
+                    .Select(m => (int?)m.UserId)
+                    .SingleOrDefaultAsync();
+
+                if (assigneeUserId.HasValue && assigneeUserId.Value != userId.Value)
+                {
+                    await notificationService.CreateAsync(
+                        assigneeUserId.Value,
+                        "New task assigned",
+                        $"You were assigned: {task.Title}",
+                        project.OrganizationId,
+                        $"/projects/{projectId}");
+                }
+            }
         }
 
         return CreatedAtAction(nameof(GetProjectTasks), new { projectId }, new
@@ -205,6 +226,8 @@ public sealed class TasksController(AppDbContext dbContext, IActivityLogService 
             return Forbid();
         }
 
+        int? previousAssigneeId = task.AssigneeId;
+
         task.Title = request.Title.Trim();
         task.Description = request.Description;
         task.Status = request.Status;
@@ -224,6 +247,24 @@ public sealed class TasksController(AppDbContext dbContext, IActivityLogService 
                 "Updated",
                 $"Updated task details for: {task.Title}"
             );
+
+            if (task.AssigneeId != previousAssigneeId && task.AssigneeId.HasValue)
+            {
+                int? assigneeUserId = await dbContext.OrganizationMembers
+                    .Where(m => m.Id == task.AssigneeId.Value && m.OrganizationId == task.Project.OrganizationId.Value)
+                    .Select(m => (int?)m.UserId)
+                    .SingleOrDefaultAsync();
+
+                if (assigneeUserId.HasValue && assigneeUserId.Value != userId.Value)
+                {
+                    await notificationService.CreateAsync(
+                        assigneeUserId.Value,
+                        "Task assignment updated",
+                        $"You were assigned to: {task.Title}",
+                        task.Project.OrganizationId,
+                        $"/projects/{task.ProjectId}");
+                }
+            }
         }
 
         return Ok(new

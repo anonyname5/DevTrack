@@ -13,6 +13,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -124,6 +125,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .WithMany()
                 .HasForeignKey(a => a.OrganizationId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(160).IsRequired();
+            entity.Property(n => n.Message).HasMaxLength(800).IsRequired();
+            entity.Property(n => n.Link).HasMaxLength(255);
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+
+            entity.HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.Organization)
+                .WithMany()
+                .HasForeignKey(n => n.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

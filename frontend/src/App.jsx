@@ -7,6 +7,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage'
 import OrganizationSettingsPage from './pages/OrganizationSettingsPage'
 import AcceptInvitePage from './pages/AcceptInvitePage'
 import GlobalSearchPalette from './components/GlobalSearchPalette'
+import NotificationsPage from './pages/NotificationsPage'
 
 function ProtectedRoute({ children }) {
   if (!getToken()) {
@@ -44,6 +45,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProjectDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />
