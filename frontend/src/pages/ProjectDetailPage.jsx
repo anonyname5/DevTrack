@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -301,6 +302,9 @@ function ProjectDetailPage() {
 
   return (
     <main className="page workspace-page">
+      <Helmet>
+        <title>{project?.name ? `${project.name} | DevTrack` : 'Project Details | DevTrack'}</title>
+      </Helmet>
       <DndContext 
         sensors={sensors} 
         collisionDetection={closestCenter} 
