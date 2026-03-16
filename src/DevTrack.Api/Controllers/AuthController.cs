@@ -17,7 +17,16 @@ public sealed class AuthController(
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
+        string normalizedFullName = request.FullName.Trim();
         string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        string? normalizedWorkspaceName = string.IsNullOrWhiteSpace(request.WorkspaceName)
+            ? null
+            : request.WorkspaceName.Trim();
+
+        if (normalizedFullName.Length < 2)
+        {
+            return BadRequest(new { message = "Full name must be at least 2 characters." });
+        }
 
         bool emailAlreadyExists = await dbContext.Users
             .AnyAsync(user => user.Email == normalizedEmail);
@@ -29,11 +38,30 @@ public sealed class AuthController(
 
         User user = new()
         {
+            FullName = normalizedFullName,
             Email = normalizedEmail,
             PasswordHash = passwordHasherService.Hash(request.Password)
         };
 
+        string workspaceName = normalizedWorkspaceName ?? $"{normalizedFullName}'s Workspace";
+
+        // Create default organization
+        var organization = new Organization
+        {
+            Name = workspaceName
+        };
+
+        var member = new OrganizationMember
+        {
+            User = user,
+            Organization = organization,
+            Role = OrganizationRole.Owner
+        };
+
         dbContext.Users.Add(user);
+        dbContext.Organizations.Add(organization);
+        dbContext.OrganizationMembers.Add(member);
+
         await dbContext.SaveChangesAsync();
 
         AuthResponse response = jwtTokenService.GenerateToken(user);

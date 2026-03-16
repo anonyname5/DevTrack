@@ -7,4 +7,6 @@ public sealed class CreateProjectRequest
     [Required]
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
+
+    public int? OrganizationId { get; set; }
 }

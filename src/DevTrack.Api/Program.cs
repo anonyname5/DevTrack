@@ -115,6 +115,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IProjectProgressService, ProjectProgressService>();
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFileStorageService, LocalDiskFileStorageService>();
 
 var app = builder.Build();
 

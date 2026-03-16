@@ -17,11 +17,11 @@ public sealed class ProgressController(IProjectProgressService progressService) 
             {
                 Id = index + 1,
                 Title = $"Task {index + 1}",
-                IsCompleted = task.IsCompleted
+                Status = task.Status
             })
             .ToList();
 
-        int completedTasks = tasks.Count(task => task.IsCompleted);
+        int completedTasks = tasks.Count(task => task.Status == ProjectTaskStatus.Done);
         int progress = progressService.CalculateProgressPercentage(tasks);
 
         ProjectProgressResponse response = new()

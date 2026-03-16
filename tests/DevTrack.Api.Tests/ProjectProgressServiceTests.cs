@@ -22,9 +22,9 @@ public sealed class ProjectProgressServiceTests
     {
         List<TaskItem> tasks =
         [
-            new TaskItem { IsCompleted = true },
-            new TaskItem { IsCompleted = true },
-            new TaskItem { IsCompleted = false }
+            new TaskItem { Status = ProjectTaskStatus.Done },
+            new TaskItem { Status = ProjectTaskStatus.Done },
+            new TaskItem { Status = ProjectTaskStatus.Todo }
         ];
 
         int result = _service.CalculateProgressPercentage(tasks);
@@ -37,8 +37,8 @@ public sealed class ProjectProgressServiceTests
     {
         List<TaskItem> tasks =
         [
-            new TaskItem { IsCompleted = true },
-            new TaskItem { IsCompleted = true }
+            new TaskItem { Status = ProjectTaskStatus.Done },
+            new TaskItem { Status = ProjectTaskStatus.Done }
         ];
 
         int result = _service.CalculateProgressPercentage(tasks);
