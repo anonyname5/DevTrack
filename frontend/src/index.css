@@ -351,9 +351,12 @@ button:disabled {
 }
 
 /* Organization Switcher Styles */
-  .org-control-group {
-    justify-content: flex-end;
-  }
+.org-control-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
 
   .org-dropdown-menu {
     right: 0;
@@ -378,7 +381,6 @@ button:disabled {
   color: var(--text);
   box-shadow: none;
   padding: 0;
-  margin-right: 10px;
 }
 
 .notification-bell-btn:hover {
