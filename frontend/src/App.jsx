@@ -10,6 +10,7 @@ import OrganizationSettingsPage from './pages/OrganizationSettingsPage'
 import AcceptInvitePage from './pages/AcceptInvitePage'
 import GlobalSearchPalette from './components/GlobalSearchPalette'
 import NotificationsPage from './pages/NotificationsPage'
+import ProfilePage from './pages/ProfilePage'
 
 function ProtectedRoute({ children }) {
   if (!getToken()) {
@@ -29,6 +30,7 @@ function App() {
     if (path === '/dashboard' || path === '/') return 'Dashboard | DevTrack'
     if (path === '/organization/settings') return 'Organization Settings | DevTrack'
     if (path === '/notifications') return 'Notifications | DevTrack'
+    if (path === '/profile') return 'Profile | DevTrack'
     if (path === '/accept-invite') return 'Accept Invitation | DevTrack'
     if (path.startsWith('/projects/')) return 'Project Details | DevTrack'
     return 'DevTrack'
@@ -48,6 +50,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

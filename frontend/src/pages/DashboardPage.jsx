@@ -292,6 +292,12 @@ function DashboardPage() {
                       <div className="org-dropdown-footer">
                         <button 
                           className="org-dropdown-action"
+                          onClick={() => navigate('/profile')}
+                        >
+                          My Profile
+                        </button>
+                        <button 
+                          className="org-dropdown-action"
                           onClick={() => navigate('/organization/settings')}
                         >
                           Organization Settings
