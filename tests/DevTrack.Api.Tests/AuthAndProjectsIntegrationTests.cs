@@ -20,6 +20,7 @@ public sealed class AuthAndProjectsIntegrationTests(CustomWebApplicationFactory 
     {
         RegisterRequest request = new()
         {
+            FullName = "Integration User",
             Email = $"register-{Guid.NewGuid():N}@example.com",
             Password = "Example123!"
         };
@@ -69,6 +70,7 @@ public sealed class AuthAndProjectsIntegrationTests(CustomWebApplicationFactory 
         string email = $"project-{Guid.NewGuid():N}@example.com";
         RegisterRequest registerRequest = new()
         {
+            FullName = "Project Owner",
             Email = email,
             Password = "Example123!"
         };
