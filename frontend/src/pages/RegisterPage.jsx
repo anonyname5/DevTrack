@@ -9,8 +9,11 @@ function RegisterPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const returnUrl = searchParams.get('returnUrl')
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { refreshOrganizations } = useOrganization()
@@ -18,12 +21,20 @@ function RegisterPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (password !== confirmPassword) {
+      setError('Password confirmation does not match.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const response = await apiClient.post('/api/auth/register', {
+        fullName,
         email,
         password,
+        workspaceName: workspaceName.trim() || null,
       })
 
       setToken(response.data.token)
@@ -70,6 +81,17 @@ function RegisterPage() {
 
           <form className="form" onSubmit={handleSubmit}>
             <label>
+              Full name
+              <input
+                type="text"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                minLength={2}
+                maxLength={120}
+                required
+              />
+            </label>
+            <label>
               Email
               <input
                 type="email"
@@ -79,12 +101,32 @@ function RegisterPage() {
               />
             </label>
             <label>
+              Workspace name (optional)
+              <input
+                type="text"
+                value={workspaceName}
+                onChange={(event) => setWorkspaceName(event.target.value)}
+                maxLength={100}
+                placeholder="e.g. Acme Product Team"
+              />
+            </label>
+            <label>
               Password (min 8 chars)
               <input
                 type="password"
                 minLength={8}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Confirm password
+              <input
+                type="password"
+                minLength={8}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
                 required
               />
             </label>

@@ -63,6 +63,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             entity.HasKey(user => user.Id);
             entity.HasIndex(user => user.Email).IsUnique();
+            entity.Property(user => user.FullName).HasMaxLength(120).IsRequired();
             entity.Property(user => user.Email).HasMaxLength(255).IsRequired();
             entity.Property(user => user.PasswordHash).IsRequired();
         });
