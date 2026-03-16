@@ -7,12 +7,13 @@ import CopyLinkModal from '../components/CopyLinkModal'
 
 function OrganizationSettingsPage() {
   const navigate = useNavigate()
-  const { currentOrg } = useOrganization()
+  const { currentOrg, organizations, refreshOrganizations } = useOrganization()
   const [members, setMembers] = useState([])
   const [invitations, setInvitations] = useState([])
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState(2) // Default to Member (2)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeletingOrg, setIsDeletingOrg] = useState(false)
   const [toasts, setToasts] = useState([])
   const [error, setError] = useState('')
   const [modalState, setModalState] = useState({
@@ -57,6 +58,8 @@ function OrganizationSettingsPage() {
   }, [currentOrg, loadData])
 
   const canManageInvites = currentOrg && (currentOrg.role === 0 || currentOrg.role === 1)
+  const ownerOrgCount = organizations.filter((org) => org.role === 0).length
+  const canDeleteCurrentOrg = currentOrg?.role === 0 && ownerOrgCount > 1
 
   async function handleInvite(e) {
     e.preventDefault()
@@ -97,6 +100,25 @@ function OrganizationSettingsPage() {
     } catch (err) {
       console.error(err)
       showToast('Failed to revoke invitation.', 'error')
+    }
+  }
+
+  async function handleDeleteOrganization() {
+    if (!currentOrg) return
+    const confirmed = window.confirm(`Delete "${currentOrg.name}" organization? This action cannot be undone.`)
+    if (!confirmed) return
+
+    setIsDeletingOrg(true)
+    try {
+      await apiClient.delete(`/api/organizations/${currentOrg.id}`)
+      await refreshOrganizations()
+      showToast('Organization deleted.')
+      navigate('/dashboard')
+    } catch (err) {
+      console.error(err)
+      showToast(err.response?.data?.message || 'Failed to delete organization.', 'error')
+    } finally {
+      setIsDeletingOrg(false)
     }
   }
 
@@ -198,6 +220,28 @@ function OrganizationSettingsPage() {
             ))}
           </ul>
         </section>
+
+        {currentOrg.role === 0 ? (
+          <section className="section-card">
+            <div className="section-heading">
+              <h2>Danger Zone</h2>
+            </div>
+            <p className="muted">
+              Deleting this organization removes its projects, tasks, and memberships permanently.
+              {!canDeleteCurrentOrg ? ' You cannot delete your last owned organization.' : ''}
+            </p>
+            <div className="row" style={{ marginTop: '12px' }}>
+              <button
+                type="button"
+                className="danger"
+                onClick={handleDeleteOrganization}
+                disabled={isDeletingOrg || !canDeleteCurrentOrg}
+              >
+                {isDeletingOrg ? 'Deleting...' : 'Delete Organization'}
+              </button>
+            </div>
+          </section>
+        ) : null}
       </section>
       <ToastStack toasts={toasts} />
       <CopyLinkModal 

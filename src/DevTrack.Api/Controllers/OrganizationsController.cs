@@ -98,6 +98,48 @@ public sealed class OrganizationsController(AppDbContext dbContext) : Controller
         return Ok(members);
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteOrganization(int id)
+    {
+        int userId = GetUserId();
+
+        OrganizationMember? membership = await dbContext.OrganizationMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.OrganizationId == id && m.UserId == userId);
+
+        if (membership is null)
+        {
+            return Forbid();
+        }
+
+        if (membership.Role != OrganizationRole.Owner)
+        {
+            return Forbid();
+        }
+
+        int ownedOrgCount = await dbContext.OrganizationMembers
+            .AsNoTracking()
+            .CountAsync(m => m.UserId == userId && m.Role == OrganizationRole.Owner);
+
+        if (ownedOrgCount <= 1)
+        {
+            return BadRequest(new { message = "You cannot delete your last organization. Create another organization first." });
+        }
+
+        Organization? organization = await dbContext.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (organization is null)
+        {
+            return NotFound();
+        }
+
+        dbContext.Organizations.Remove(organization);
+        await dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     private int GetUserId()
     {
         string? claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
